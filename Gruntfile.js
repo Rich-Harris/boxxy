@@ -68,5 +68,5 @@ module.exports = function ( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-watch' );
 
 	grunt.registerTask( 'default', [ 'jshint', 'concat', 'uglify', 'copy:css' ] );
-	grunt.registerTask( 'build', [ 'default', 'copy:release', 'copy:shortcut' ] );
+	grunt.registerTask( 'release', [ 'default', 'copy:release', 'copy:shortcut' ] );
 };
