@@ -1,7 +1,7 @@
 Divvy.js
 ========
 
-A layout manager for web apps. [See it in action here.](TODO)
+A layout manager for web apps. [See it in action here.](http://rich-harris.github.io/Divvy/)
 
 Usage
 -----
