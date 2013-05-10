@@ -238,6 +238,8 @@ var Divvy = (function () {
 
 			this.start = start;
 			this.size = size;
+
+			this.shake();
 		},
 
 		setEnd: function ( end ) {
@@ -254,6 +256,8 @@ var Divvy = (function () {
 
 			this.end = end;
 			this.size = size;
+
+			this.shake();
 		},
 
 		shake: function () {
