@@ -6,7 +6,7 @@ html, body {
 
 body {
 	font-family: 'Helvetica Neue', 'Arial';
-	font-size: 10px;
+	font-size: 16px;
 	color: #333;
 }
 
@@ -31,5 +31,13 @@ h1 {
 	position: relative;
 	width: 100%;
 	height: 100%;
-	background-color: #eee
+}
+
+.hidden {
+	display: none;
+}
+
+.divvy-inner {
+	padding: 0.5em;
+	box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3);
 }

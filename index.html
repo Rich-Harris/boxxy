@@ -16,6 +16,22 @@
 		<div id='inner'></div>
 	</div>
 
+	<!-- these nodes will become part of the divvy -->
+	<div class='hidden'>
+		<div id='left-top'>This box existed on the page before the divvy was created &ndash; view source to see what I mean.</div>
+
+		<div id='right-bottom'>Drag the white handles between blocks to resize rows and columns. The left-hand column has been given a minimum width of 100px as an example of using Divvy.js with constraints.</div>
+	</div>
+
+	<!-- progressive enhancement yeah! -->
+	<noscript>
+		<style type='text/css'>
+			.hidden {
+				display: block;
+			}
+		</style>
+	</noscript>
+
 	<!-- JS -->
 	<script src='js/lib/Divvy.js'></script>
 	<script src='js/main.js'></script>
