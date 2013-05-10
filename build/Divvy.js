@@ -1,4 +1,4 @@
-// Divvy v0.1.0
+// Divvy v0.1.1
 // Copyright (2013) Rich Harris
 // Released under the MIT License
 
@@ -12,18 +12,7 @@ var Divvy = (function () {
 
 	'use strict';
 
-	var Block, Control, ROW, COLUMN, LEFT, TOP, WIDTH, HEIGHT, VERTICAL, HORIZONTAL, CLIENTX, CLIENTY, randomColor;
-
-	// TEMP
-	randomColor = function () {
-		var red, green, blue;
-
-		red = Math.floor( Math.random() * 256 );
-		green = Math.floor( Math.random() * 256 );
-		blue = Math.floor( Math.random() * 256 );
-
-		return 'rgb(' + [ red, green, blue ].join( ',' ) + ')';
-	};
+	var Block, Control, indexOf, addClass, removeClass, ROW, COLUMN, LEFT, TOP, WIDTH, HEIGHT, VERTICAL, HORIZONTAL, CLIENTX, CLIENTY;
 
 	ROW = 'row';
 	COLUMN = 'column';
@@ -36,8 +25,90 @@ var Divvy = (function () {
 	CLIENTX = 'clientX';
 	CLIENTY = 'clientY';
 
-	Block = function ( root, parent, parentNode, data, start, size, type ) {
-		var totalSize, i, total, childData, childSize, before, after;
+	// helpers
+	indexOf = function ( needle, haystack ) {
+		var i, len;
+
+		for ( i=0, len=haystack.length; i<len; i+=1 ) {
+			if ( haystack[i] === needle ) {
+				return needle;
+			}
+		}
+
+		return -1;
+	};
+
+	addClass = function ( node, className ) {
+		var trim;
+
+		if ( node.classList && node.classList.add ) {
+			addClass = function ( node, className ) {
+				node.classList.add( className );
+			};
+		}
+
+		else {
+			trim = function ( str ) {
+				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
+			};
+
+			addClass = function ( node, className ) {
+				var classNames, index;
+
+				classNames = node.className.split( ' ' ).map( trim );
+
+				if ( classNames.indexOf ) {
+					index = classNames.indexOf( className );
+				} else {
+					index = indexOf( className, classNames );
+				}
+
+				if ( index === -1 ) {
+					node.className = classNames.concat( className ).join( ' ' );
+				}
+			};
+		}
+
+		addClass( node, className );
+	};
+
+	removeClass = function ( node, className ) {
+		var trim;
+
+		if ( node.classList && node.classList.remove ) {
+			removeClass = function ( node, className ) {
+				node.classList.remove( className );
+			};
+		}
+
+		else {
+			trim = function ( str ) {
+				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
+			};
+
+			removeClass = function ( node, className ) {
+				var classNames, index;
+
+				classNames = node.className.split( ' ' ).map( trim );
+
+				if ( classNames.indexOf ) {
+					index = classNames.indexOf( className );
+				} else {
+					index = indexOf( className, classNames );
+				}
+
+				if ( index !== -1 ) {
+					classNames.splice( index, 1 );
+					node.className = classNames.join( ' ' );
+				}
+			};
+		}
+
+		removeClass( node, className );
+	};
+
+	Block = function ( root, parent, parentNode, id, data, start, size, type, edges ) {
+		var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
 		this.start = start;
 		this.size = size;
@@ -45,38 +116,68 @@ var Divvy = (function () {
 
 		this.type = type;
 		this.parent = parent;
+		this.edges = edges;
 
 		this.min = data.min || root.min;
 		this.max = data.max;
 
-		this.node = document.createElement( 'div' );
-		this.node.className = 'divvy-block';
-		
-		this.node.style[ type === COLUMN ? LEFT : TOP ] = start + '%';
-		this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
+		// were we given an existing node?
+		if ( data instanceof Element ) {
+			data = { node: data };
+		}
 
-		// allow data to be an ID string...
+		// or an ID string?
 		if ( typeof data === 'string' ) {
 			data = { id: data };
 		}
 
-		// ...or an array of children
+		// ...or an array of children?
 		if ( Object.prototype.toString.call( data ) === '[object Array]' ) {
 			data = { children: data };
 		}
 
-		if ( data.id ) {
-			this.node.id = data.id;
+		this.id = data.id || id;
 
-			if ( !data.children ) {
-				root.blocks[ data.id ] = this.node;
+
+		if ( data.children && data.children.length ) {
+			// Branch block
+			this.node = document.createElement( 'div' );
+			addClass( this.node, 'divvy-block' );
+			addClass( this.node, 'divvy-branch' );
+		}
+
+		else {
+			// Leaf block
+			this.node = document.createElement( 'div' );
+			addClass( this.node, 'divvy-block' );
+			addClass( this.node, 'divvy-leaf' );
+
+			// do we have an ID that references an existing node?
+			if ( !data.node && data.id && ( node = document.getElementById( data.id ) ) ) {
+				data.node = node;
 			}
+
+			if ( data.node ) {
+				this.inner = data.node;
+			} else {
+				this.inner = document.createElement( 'div' );
+			}
+
+			addClass( this.inner, 'divvy-inner' );
+			this.node.appendChild( this.inner );
+
+			root.blocks[ this.id ] = this.inner;
 		}
 
-		// TEMP
-		if ( !data.children ) {
-			this.node.style.backgroundColor = randomColor();
-		}
+		if ( edges.top ) { addClass( this.node, 'divvy-top' ); }
+		if ( edges.right ) { addClass( this.node, 'divvy-right' ); }
+		if ( edges.bottom ) { addClass( this.node, 'divvy-bottom' ); }
+		if ( edges.left ) { addClass( this.node, 'divvy-left' ); }
+		
+		this.node.style[ type === COLUMN ? LEFT : TOP ] = start + '%';
+		this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
+
+		this.node.id = this.id;
 
 		if ( data.children ) {
 			// find total size of children
@@ -92,8 +193,23 @@ var Divvy = (function () {
 				childData = data.children[i];
 				childSize = 100 * ( ( childData.size || 1 ) / totalSize );
 
-				this.children[i] = new Block( root, this, this.node, childData, total, childSize, type === COLUMN ? ROW : COLUMN );
+				childEdges = {};
+				if ( type === COLUMN ) {
+					childEdges.top = edges.top && ( i === 0 );
+					childEdges.bottom = edges.bottom && ( i === ( data.children.length - 1 ) );
+					childEdges.left = edges.left;
+					childEdges.right = edges.right;
+				} else {
+					childEdges.left = edges.left && ( i === 0 );
+					childEdges.right = edges.right && ( i === ( data.children.length - 1 ) );
+					childEdges.top = edges.top;
+					childEdges.bottom = edges.bottom;
+				}
 
+
+
+				this.children[i] = new Block( root, this, this.node, ( id + i ), childData, total, childSize, type === COLUMN ? ROW : COLUMN, childEdges );
+				
 				total += childSize;
 			}
 
@@ -233,7 +349,7 @@ var Divvy = (function () {
 		this.parentNode = parentNode;
 
 		this.node = document.createElement( 'div' );
-		this.node.className = 'divvy-' + type + '-control';
+		addClass( this.node, 'divvy-' + type + '-control' );
 
 		this.setPosition( after.start );
 
@@ -279,12 +395,12 @@ var Divvy = (function () {
 
 	Control.prototype = {
 		setActive: function () {
-			this.node.classList.add( 'active' );
+			addClass( this.node, 'divvy-active' );
 			this.root.cursor( this.type === VERTICAL ? 'ew' : 'ns' );
 		},
 
 		setInactive: function () {
-			this.node.classList.remove( 'active' );
+			removeClass( this.node, 'divvy-active' );
 			this.root.cursor( false );
 		},
 
@@ -329,7 +445,7 @@ var Divvy = (function () {
 
 		this.min = options.min || 10;
 
-		this.root = new Block( this, this, fragment, { children: blocks }, 0, 100, this.type );
+		this.root = new Block( this, this, fragment, 'divvy-0', { children: blocks }, 0, 100, this.type, { top: true, right: true, bottom: true, left: true });
 		this.el.appendChild( fragment );
 
 		if ( options.shakeOnResize !== false ) {
