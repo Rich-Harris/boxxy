@@ -5,12 +5,36 @@
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
+	overflow: hidden;
+}
 
-	-webkit-user-drag: none;
-	-moz-user-drag: none;
-	-ms-user-drag: none;
-	-o-user-drag: none;
-	user-drag: none;
+.divvy-leaf {
+	padding: 2px;
+}
+
+.divvy-leaf.divvy-top {
+	padding-top: 0;
+}
+
+.divvy-leaf.divvy-right {
+	padding-right: 0;
+}
+
+.divvy-leaf.divvy-bottom {
+	padding-bottom: 0;
+}
+
+.divvy-leaf.divvy-left {
+	padding-left: 0;
+}
+
+.divvy-inner {
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 .divvy-vertical-control, .divvy-horizontal-control {
@@ -21,12 +45,6 @@
 	-ms-user-select: none;
 	-o-user-select: none;
 	user-select: none;
-
-	-webkit-user-drag: none;
-	-moz-user-drag: none;
-	-ms-user-drag: none;
-	-o-user-drag: none;
-	user-drag: none;
 }
 
 .divvy-vertical-control:after, .divvy-horizontal-control:after {
