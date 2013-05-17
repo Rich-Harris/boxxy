@@ -134,6 +134,8 @@ var Divvy = (function () {
 			this.node = document.createElement( 'div' );
 			addClass( this.node, 'divvy-block' );
 			addClass( this.node, 'divvy-branch' );
+
+			this.node.id = this.id;
 		}
 
 		else {
@@ -157,6 +159,8 @@ var Divvy = (function () {
 			this.node.appendChild( this.inner );
 
 			root.blocks[ this.id ] = this.inner;
+
+			this.inner.id = this.id;
 		}
 
 		if ( edges.top ) { addClass( this.node, 'divvy-top' ); }
@@ -166,8 +170,6 @@ var Divvy = (function () {
 		
 		this.node.style[ type === COLUMN ? LEFT : TOP ] = start + '%';
 		this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
-
-		this.node.id = this.id;
 
 		if ( data.children ) {
 			// find total size of children
