@@ -1,4 +1,4 @@
-// Divvy v0.1.1
+// Divvy v0.1.2
 // Copyright (2013) Rich Harris
 // Released under the MIT License
 
@@ -115,6 +115,7 @@ var Divvy = (function () {
 		this.end = this.start + this.size;
 
 		this.type = type;
+		this.root = root;
 		this.parent = parent;
 		this.edges = edges;
 
@@ -144,6 +145,8 @@ var Divvy = (function () {
 			this.node = document.createElement( 'div' );
 			addClass( this.node, 'divvy-block' );
 			addClass( this.node, 'divvy-branch' );
+
+			this.node.id = this.id;
 		}
 
 		else {
@@ -167,6 +170,8 @@ var Divvy = (function () {
 			this.node.appendChild( this.inner );
 
 			root.blocks[ this.id ] = this.inner;
+
+			this.inner.id = this.id;
 		}
 
 		if ( edges.top ) { addClass( this.node, 'divvy-top' ); }
@@ -176,8 +181,6 @@ var Divvy = (function () {
 		
 		this.node.style[ type === COLUMN ? LEFT : TOP ] = start + '%';
 		this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
-
-		this.node.id = this.id;
 
 		if ( data.children ) {
 			// find total size of children
@@ -263,11 +266,21 @@ var Divvy = (function () {
 		shake: function () {
 			var i, len, a, b, control, size;
 
+			this.bcr = this.node.getBoundingClientRect();
+
+			if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
+				return; // nothing to do, no need to shake children
+			}
+
+			this.width = this.bcr.width;
+			this.height = this.bcr.height;
+			this.root._changed[ this.id ] = this.root._changedSinceLastResize[ this.id ] = true;
+
+			// if we don't have any children, we don't need to go any further
 			if ( !this.children ) {
 				return;
 			}
 
-			this.bcr = this.node.getBoundingClientRect();
 			this.pixelSize = this.bcr[ this.type === COLUMN ? HEIGHT : WIDTH ];
 
 			// enforce minima and maxima - first go forwards
@@ -378,6 +391,9 @@ var Divvy = (function () {
 				after.setStart( position );
 
 				self.setPosition( position );
+
+				self.root.fire( 'resize', self.root._changedSinceLastResize );
+				self.root._changedSinceLastResize = {};
 			};
 
 			up = function ( event ) {
@@ -446,6 +462,7 @@ var Divvy = (function () {
 		}
 
 		this.blocks = {};
+		this.subs = {}; // events
 
 		this.min = options.min || 10;
 
@@ -454,17 +471,29 @@ var Divvy = (function () {
 
 		if ( options.shakeOnResize !== false ) {
 			window.addEventListener( 'resize', function () {
+				self._changedSinceLastResize = {};
 				self.shake();
+				self.fire( 'resize', self._changedSinceLastResize );
 			});
 		}
 
+		this._changed = {};
+		this._changedSinceLastResize = {};
 		this.shake();
 	};
 
 	Divvy.prototype = {
 		shake: function () {
 			this.bcr = this.el.getBoundingClientRect();
-			this.pixelSize = this.bcr[ this.type === COLUMN ? HEIGHT : WIDTH ];
+
+			if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
+				return; // nothing to do
+			}
+
+			this.width = this.bcr.width;
+			this.height = this.bcr.height;
+
+			this.pixelSize = this[ this.type === COLUMN ? HEIGHT : WIDTH ];
 
 			this.root.shake();
 		},
@@ -477,8 +506,80 @@ var Divvy = (function () {
 
 			this._cursor = this.el.style.cursor;
 			this.el.style.cursor = direction + '-resize';
+		},
+
+		changed: function () {
+			var changed = this._changed;
+			this._changed = {};
+
+			return changed;
+		},
+
+		on: function ( eventName, callback ) {
+			var subs;
+
+			if ( !( subs = this.subs[ eventName ] ) ) {
+				this.subs[ eventName ] = [ callback ];
+			} else {
+				subs[ subs.length ] = callback;
+			}
+		},
+
+		off: function ( eventName, callback ) {
+			var index, subs;
+
+			if ( !eventName ) {
+				// remove all listeners
+				this.subs = {};
+				return this;
+			}
+
+			if ( !callback ) {
+				// remove all listeners of eventName
+				delete this.subs[ eventName ];
+				return this;
+			}
+
+			if ( !( subs = this.subs[ eventName ] ) ) {
+				return this;
+			}
+
+			index = subs.indexOf( callback );
+
+			if ( index !== -1 ) {
+				subs.splice( index, 1 );
+				if ( !subs.length ) {
+					delete this.subs[ eventName ];
+				}
+			}
+		},
+
+		fire: function ( eventName ) {
+			var args, subs, i, len;
+
+			subs = this.subs[ eventName ];
+
+			if ( !subs ) {
+				return this;
+			}
+
+			args = Array.prototype.slice.call( arguments, 1 );
+
+			// call is faster if we can use it instead of apply
+			if ( !args.length ) {
+				for ( i=0, len=subs.length; i<len; i+=1 ) {
+					subs[i].call( this );
+				}
+				return this;
+			}
+
+			for ( i=0, len=subs.length; i<len; i+=1 ) {
+				subs[i].apply( this, args );
+			}
+			return this;
 		}
 	};
+
 
 
 	return Divvy;
