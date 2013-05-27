@@ -1,4 +1,4 @@
-// Divvy v0.1.2
+// Divvy v0.1.3
 // Copyright (2013) Rich Harris
 // Released under the MIT License
 
@@ -8,105 +8,308 @@
 
 'use strict';
 
-var Divvy = (function () {
+var Divvy;
+
+(function () {
 
 	'use strict';
 
-	var Block, Control, indexOf, addClass, removeClass, ROW, COLUMN, LEFT, TOP, WIDTH, HEIGHT, VERTICAL, HORIZONTAL, CLIENTX, CLIENTY;
+	var Block,
+		Control,
 
-	ROW = 'row';
-	COLUMN = 'column';
-	LEFT = 'left';
-	TOP = 'top';
-	WIDTH = 'width';
-	HEIGHT = 'height';
-	VERTICAL = 'vertical';
-	HORIZONTAL = 'horizontal';
-	CLIENTX = 'clientX';
-	CLIENTY = 'clientY';
+		// shims for shit browsers
+		indexOf,
+		addClass,
+		removeClass,
 
-	// helpers
-	indexOf = function ( needle, haystack ) {
-		var i, len;
+		// internal helper functions
+		getState,
+		setState,
+		cursor,
+		fire,
 
-		for ( i=0, len=haystack.length; i<len; i+=1 ) {
-			if ( haystack[i] === needle ) {
-				return needle;
+		// a few string constants
+		ROW = 'row',
+		COLUMN = 'column',
+		LEFT = 'left',
+		TOP = 'top',
+		WIDTH = 'width',
+		HEIGHT = 'height',
+		VERTICAL = 'vertical',
+		HORIZONTAL = 'horizontal',
+		CLIENTX = 'clientX',
+		CLIENTY = 'clientY';
+
+	
+
+	Divvy = function ( options ) {
+		var self = this, fragment, i, blocks, type;
+
+		this.el = options.el;
+		fragment = document.createDocumentFragment();
+
+		if ( options.columns && options.rows ) {
+			throw new Error( 'You can\'t have top level rows and top level columns - one or the other' );
+		}
+
+		if ( options.columns ) {
+			this.type = ROW;
+			blocks = options.columns;
+		} else if ( options.rows ) {
+			this.type = COLUMN;
+			blocks = options.rows;
+		}
+
+		this.blocks = {};
+		this.subs = {}; // events
+
+		this.min = options.min || 10;
+
+		this.root = new Block( this, this, fragment, 'divvy-0', { children: blocks }, 0, 100, this.type, { top: true, right: true, bottom: true, left: true });
+		this.el.appendChild( fragment );
+
+		if ( options.shakeOnResize !== false ) {
+			window.addEventListener( 'resize', function () {
+				self._changedSinceLastResize = {};
+				self.shake();
+				fire( self, 'resize', self._changedSinceLastResize );
+			});
+		}
+
+		this._changed = {};
+		this._changedSinceLastResize = {};
+		this.shake();
+	};
+
+	Divvy.prototype = {
+		shake: function () {
+			this.bcr = this.el.getBoundingClientRect();
+
+			if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
+				return; // nothing to do
+			}
+
+			this.width = this.bcr.width;
+			this.height = this.bcr.height;
+
+			this.pixelSize = this[ this.type === COLUMN ? HEIGHT : WIDTH ];
+
+			this.root.shake();
+
+			return this;
+		},
+
+		changed: function () {
+			var changed = this._changed;
+			this._changed = {};
+
+			return changed;
+		},
+
+		getState: function () {
+			var state = {};
+
+			getState( this.root, state );
+			return state;
+		},
+
+		setState: function ( state ) {
+			var changed = {}, key;
+
+			setState( this, this.root, state, changed );
+
+			// if any of the sizes have changed, fire a resize event...
+			for ( key in changed ) {
+				if ( changed.hasOwnProperty( key ) ) {
+					fire( this, 'resize', changed );
+					
+					// ...but only the one
+					break;
+				}
+			}
+			return this;
+		},
+
+		save: function ( id ) {
+			var key, value;
+
+			if ( !localStorage ) {
+				return;
+			}
+
+			key = ( id ? 'divvy_' + id : 'divvy' );
+			value = JSON.stringify( this.getState() );
+
+			localStorage.setItem( key, value );
+
+			return this;
+		},
+
+		restore: function ( id ) {
+			var key, value;
+
+			if ( !localStorage ) {
+				return;
+			}
+
+			key = ( id ? 'divvy_' + id : 'divvy' );
+			value = JSON.parse( localStorage.getItem( key ) );
+
+			if ( value ) {
+				this.setState( value );
+			}
+
+			return this;
+		},
+
+		on: function ( eventName, callback ) {
+			var self = this, subs;
+
+			if ( !( subs = this.subs[ eventName ] ) ) {
+				this.subs[ eventName ] = [ callback ];
+			} else {
+				subs[ subs.length ] = callback;
+			}
+
+			return {
+				cancel: function () {
+					self.off( eventName, callback );
+				}
+			};
+		},
+
+		off: function ( eventName, callback ) {
+			var index, subs;
+
+			if ( !eventName ) {
+				// remove all listeners
+				this.subs = {};
+				return this;
+			}
+
+			if ( !callback ) {
+				// remove all listeners of eventName
+				delete this.subs[ eventName ];
+				return this;
+			}
+
+			if ( !( subs = this.subs[ eventName ] ) ) {
+				return this;
+			}
+
+			index = subs.indexOf( callback );
+
+			if ( index !== -1 ) {
+				subs.splice( index, 1 );
+				if ( !subs.length ) {
+					delete this.subs[ eventName ];
+				}
+			}
+
+			return this;
+		}
+	};
+
+
+	// internal helpers
+	fire = function ( divvy, eventName ) {
+		var args, subs, i, len;
+
+		subs = divvy.subs[ eventName ];
+
+		if ( !subs ) {
+			return;
+		}
+
+		args = Array.prototype.slice.call( arguments, 2 );
+
+		// call is faster if we can use it instead of apply
+		if ( !args.length ) {
+			for ( i=0, len=subs.length; i<len; i+=1 ) {
+				subs[i].call( divvy );
+			}
+			return;
+		}
+
+		for ( i=0, len=subs.length; i<len; i+=1 ) {
+			subs[i].apply( divvy, args );
+		}
+		return divvy;
+	};
+
+	getState = function ( block, state ) {
+		var i;
+
+		state[ block.id ] = [ block.start, block.size ];
+
+		if ( !block.children ) {
+			return;
+		}
+
+		i = block.children.length;
+		while ( i-- ) {
+			getState( block.children[i], state );
+		}
+	};
+
+	setState = function ( divvy, block, state, changed, noShake ) {
+		var i, len, child, totalSize, blockState;
+
+		blockState = state[ block.id ];
+
+		if ( !blockState ) {
+			return; // something went wrong...
+		}
+
+		if ( block.start !== blockState[0] || block.size !== blockState[1] ) {
+			divvy._changed[ block.id ] = changed[ block.id ] = true;
+		}
+
+		block.start = blockState[0];
+		block.size = blockState[1];
+		block.end = block.start + block.size;
+
+		block.node.style[ block.type === COLUMN ? LEFT : TOP ] = block.start + '%';
+		block.node.style[ block.type === COLUMN ? WIDTH : HEIGHT ] = block.size + '%';
+
+		if ( block.children ) {
+			totalSize = 0;
+			len = block.children.length;
+
+			for ( i=0; i<len; i+=1 ) {
+				child = block.children[i];
+
+				setState( divvy, child, state, changed, true );
+				totalSize += child.size;
+
+				if ( block.controls[i] ) {
+					block.controls[i].setPosition( totalSize );
+				}
+			}
+
+			i = block.children.length;
+			while ( i-- ) {
+				setState( divvy, block.children[i], state, changed, true );	
 			}
 		}
 
-		return -1;
+		if ( !noShake ) {
+			block.shake();
+		}
 	};
 
-	addClass = function ( node, className ) {
-		var trim;
-
-		if ( node.classList && node.classList.add ) {
-			addClass = function ( node, className ) {
-				node.classList.add( className );
-			};
+	cursor = function ( divvy, direction ) {
+		if ( !direction ) {
+			divvy.el.style.cursor = divvy._cursor;
+			return;
 		}
 
-		else {
-			trim = function ( str ) {
-				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
-			};
-
-			addClass = function ( node, className ) {
-				var classNames, index;
-
-				classNames = node.className.split( ' ' ).map( trim );
-
-				if ( classNames.indexOf ) {
-					index = classNames.indexOf( className );
-				} else {
-					index = indexOf( className, classNames );
-				}
-
-				if ( index === -1 ) {
-					node.className = classNames.concat( className ).join( ' ' );
-				}
-			};
-		}
-
-		addClass( node, className );
+		divvy._cursor = divvy.el.style.cursor;
+		divvy.el.style.cursor = direction + '-resize';
 	};
 
-	removeClass = function ( node, className ) {
-		var trim;
 
-		if ( node.classList && node.classList.remove ) {
-			removeClass = function ( node, className ) {
-				node.classList.remove( className );
-			};
-		}
-
-		else {
-			trim = function ( str ) {
-				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
-			};
-
-			removeClass = function ( node, className ) {
-				var classNames, index;
-
-				classNames = node.className.split( ' ' ).map( trim );
-
-				if ( classNames.indexOf ) {
-					index = classNames.indexOf( className );
-				} else {
-					index = indexOf( className, classNames );
-				}
-
-				if ( index !== -1 ) {
-					classNames.splice( index, 1 );
-					node.className = classNames.join( ' ' );
-				}
-			};
-		}
-
-		removeClass( node, className );
-	};
-
+	// internal constructors
 	Block = function ( root, parent, parentNode, id, data, start, size, type, edges ) {
 		var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
@@ -392,7 +595,7 @@ var Divvy = (function () {
 
 				self.setPosition( position );
 
-				self.root.fire( 'resize', self.root._changedSinceLastResize );
+				fire( self.root, 'resize', self.root._changedSinceLastResize );
 				self.root._changedSinceLastResize = {};
 			};
 
@@ -416,12 +619,12 @@ var Divvy = (function () {
 	Control.prototype = {
 		setActive: function () {
 			addClass( this.node, 'divvy-active' );
-			this.root.cursor( this.type === VERTICAL ? 'ew' : 'ns' );
+			cursor( this.root, this.type === VERTICAL ? 'ew' : 'ns' );
 		},
 
 		setInactive: function () {
 			removeClass( this.node, 'divvy-active' );
-			this.root.cursor( false );
+			cursor( this.root, false );
 		},
 
 		getPosition: function ( px ) {
@@ -442,147 +645,87 @@ var Divvy = (function () {
 	};
 
 
+	// shims
+	indexOf = function ( needle, haystack ) {
+		var i, len;
 
-	Divvy = function ( options ) {
-		var self = this, fragment, i, blocks, type;
-
-		this.el = options.el;
-		fragment = document.createDocumentFragment();
-
-		if ( options.columns && options.rows ) {
-			throw new Error( 'You can\'t have top level rows and top level columns - one or the other' );
+		for ( i=0, len=haystack.length; i<len; i+=1 ) {
+			if ( haystack[i] === needle ) {
+				return needle;
+			}
 		}
 
-		if ( options.columns ) {
-			this.type = ROW;
-			blocks = options.columns;
-		} else if ( options.rows ) {
-			this.type = COLUMN;
-			blocks = options.rows;
-		}
-
-		this.blocks = {};
-		this.subs = {}; // events
-
-		this.min = options.min || 10;
-
-		this.root = new Block( this, this, fragment, 'divvy-0', { children: blocks }, 0, 100, this.type, { top: true, right: true, bottom: true, left: true });
-		this.el.appendChild( fragment );
-
-		if ( options.shakeOnResize !== false ) {
-			window.addEventListener( 'resize', function () {
-				self._changedSinceLastResize = {};
-				self.shake();
-				self.fire( 'resize', self._changedSinceLastResize );
-			});
-		}
-
-		this._changed = {};
-		this._changedSinceLastResize = {};
-		this.shake();
+		return -1;
 	};
 
-	Divvy.prototype = {
-		shake: function () {
-			this.bcr = this.el.getBoundingClientRect();
+	addClass = function ( node, className ) {
+		var trim;
 
-			if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
-				return; // nothing to do
-			}
-
-			this.width = this.bcr.width;
-			this.height = this.bcr.height;
-
-			this.pixelSize = this[ this.type === COLUMN ? HEIGHT : WIDTH ];
-
-			this.root.shake();
-		},
-
-		cursor: function ( direction ) {
-			if ( !direction ) {
-				this.el.style.cursor = this._cursor;
-				return;
-			}
-
-			this._cursor = this.el.style.cursor;
-			this.el.style.cursor = direction + '-resize';
-		},
-
-		changed: function () {
-			var changed = this._changed;
-			this._changed = {};
-
-			return changed;
-		},
-
-		on: function ( eventName, callback ) {
-			var subs;
-
-			if ( !( subs = this.subs[ eventName ] ) ) {
-				this.subs[ eventName ] = [ callback ];
-			} else {
-				subs[ subs.length ] = callback;
-			}
-		},
-
-		off: function ( eventName, callback ) {
-			var index, subs;
-
-			if ( !eventName ) {
-				// remove all listeners
-				this.subs = {};
-				return this;
-			}
-
-			if ( !callback ) {
-				// remove all listeners of eventName
-				delete this.subs[ eventName ];
-				return this;
-			}
-
-			if ( !( subs = this.subs[ eventName ] ) ) {
-				return this;
-			}
-
-			index = subs.indexOf( callback );
-
-			if ( index !== -1 ) {
-				subs.splice( index, 1 );
-				if ( !subs.length ) {
-					delete this.subs[ eventName ];
-				}
-			}
-		},
-
-		fire: function ( eventName ) {
-			var args, subs, i, len;
-
-			subs = this.subs[ eventName ];
-
-			if ( !subs ) {
-				return this;
-			}
-
-			args = Array.prototype.slice.call( arguments, 1 );
-
-			// call is faster if we can use it instead of apply
-			if ( !args.length ) {
-				for ( i=0, len=subs.length; i<len; i+=1 ) {
-					subs[i].call( this );
-				}
-				return this;
-			}
-
-			for ( i=0, len=subs.length; i<len; i+=1 ) {
-				subs[i].apply( this, args );
-			}
-			return this;
+		if ( node.classList && node.classList.add ) {
+			addClass = function ( node, className ) {
+				node.classList.add( className );
+			};
 		}
+
+		else {
+			trim = function ( str ) {
+				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
+			};
+
+			addClass = function ( node, className ) {
+				var classNames, index;
+
+				classNames = node.className.split( ' ' ).map( trim );
+
+				if ( classNames.indexOf ) {
+					index = classNames.indexOf( className );
+				} else {
+					index = indexOf( className, classNames );
+				}
+
+				if ( index === -1 ) {
+					node.className = classNames.concat( className ).join( ' ' );
+				}
+			};
+		}
+
+		addClass( node, className );
 	};
 
+	removeClass = function ( node, className ) {
+		var trim;
 
+		if ( node.classList && node.classList.remove ) {
+			removeClass = function ( node, className ) {
+				node.classList.remove( className );
+			};
+		}
 
-	return Divvy;
+		else {
+			trim = function ( str ) {
+				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
+			};
+
+			removeClass = function ( node, className ) {
+				var classNames, index;
+
+				classNames = node.className.split( ' ' ).map( trim );
+
+				if ( classNames.indexOf ) {
+					index = classNames.indexOf( className );
+				} else {
+					index = indexOf( className, classNames );
+				}
+
+				if ( index !== -1 ) {
+					classNames.splice( index, 1 );
+					node.className = classNames.join( ' ' );
+				}
+			};
+		}
+
+		removeClass( node, className );
+	};
 
 }());
 
