@@ -283,9 +283,9 @@ var Divvy;
 			}
 		}
 
-		if ( !noShake ) {
+		//if ( !noShake ) {
 			block.shake();
-		}
+		//}
 	};
 
 	cursor = function ( divvy, direction ) {
