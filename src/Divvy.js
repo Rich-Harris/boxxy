@@ -7,6 +7,9 @@ var Divvy;
 	var Block,
 		Control,
 
+		// touch support?
+		touch = ( 'ontouchstart' in document ),
+
 		// shims for shit browsers
 		indexOf,
 		addClass,
@@ -56,6 +59,7 @@ var Divvy;
 		this.min = options.min || 10;
 
 		this.root = new Block( this, this, fragment, 'divvy-0', { children: blocks }, 0, 100, this.type, { top: true, right: true, bottom: true, left: true });
+		addClass( this.root.node, 'divvy-root' );
 		this.el.appendChild( fragment );
 
 		if ( options.shakeOnResize !== false ) {
@@ -300,7 +304,7 @@ var Divvy;
 
 
 	// internal constructors
-	Block = function ( root, parent, parentNode, id, data, start, size, type, edges ) {
+	Block = function ( divvy, parent, parentNode, id, data, start, size, type, edges ) {
 		var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
 		this.start = start;
@@ -308,11 +312,11 @@ var Divvy;
 		this.end = this.start + this.size;
 
 		this.type = type;
-		this.root = root;
+		this.divvy = divvy;
 		this.parent = parent;
 		this.edges = edges;
 
-		this.min = data.min || root.min;
+		this.min = data.min || divvy.min;
 		this.max = data.max;
 
 		// were we given an existing node?
@@ -362,7 +366,7 @@ var Divvy;
 			addClass( this.inner, 'divvy-inner' );
 			this.node.appendChild( this.inner );
 
-			root.blocks[ this.id ] = this.inner;
+			divvy.blocks[ this.id ] = this.inner;
 
 			this.inner.id = this.id;
 		}
@@ -404,7 +408,7 @@ var Divvy;
 
 
 
-				this.children[i] = new Block( root, this, this.node, ( id + i ), childData, total, childSize, type === COLUMN ? ROW : COLUMN, childEdges );
+				this.children[i] = new Block( divvy, this, this.node, ( id + i ), childData, total, childSize, type === COLUMN ? ROW : COLUMN, childEdges );
 				
 				total += childSize;
 			}
@@ -412,7 +416,7 @@ var Divvy;
 			for ( i=0; i<data.children.length - 1; i+=1 ) {
 				before = this.children[i];
 				after = this.children[ i + 1 ];
-				this.controls[i] = new Control( root, this, this.node, before, after, type === ROW ? VERTICAL : HORIZONTAL );
+				this.controls[i] = new Control( divvy, this, this.node, before, after, type === ROW ? VERTICAL : HORIZONTAL );
 			}
 		}
 
@@ -467,7 +471,7 @@ var Divvy;
 
 			this.width = this.bcr.width;
 			this.height = this.bcr.height;
-			this.root._changed[ this.id ] = this.root._changedSinceLastResize[ this.id ] = true;
+			this.divvy._changed[ this.id ] = this.divvy._changedSinceLastResize[ this.id ] = true;
 
 			// if we don't have any children, we don't need to go any further
 			if ( !this.children ) {
@@ -547,10 +551,10 @@ var Divvy;
 	};
 
 
-	Control = function ( root, parent, parentNode, before, after, type ) {
+	Control = function ( divvy, parent, parentNode, before, after, type ) {
 		var self = this;
 
-		this.root = root;
+		this.divvy = divvy;
 		this.parent = parent;
 		this.before = before;
 		this.after = after;
@@ -561,12 +565,15 @@ var Divvy;
 		this.node = document.createElement( 'div' );
 		addClass( this.node, 'divvy-' + type + '-control' );
 
+		if ( touch ) {
+			addClass( this.node, 'divvy-touch-control' );
+		}
+
+		// initialise position to the start of the next block
 		this.setPosition( after.start );
 
 		this.node.addEventListener( 'mousedown', function ( event ) {
 			var start, min, max, afterEnd, move, up, cancel;
-
-			self.setActive();
 
 			event.preventDefault();
 
@@ -585,8 +592,8 @@ var Divvy;
 
 				self.setPosition( position );
 
-				fire( self.root, 'resize', self.root._changedSinceLastResize );
-				self.root._changedSinceLastResize = {};
+				fire( self.divvy, 'resize', self.divvy._changedSinceLastResize );
+				self.divvy._changedSinceLastResize = {};
 			};
 
 			up = function ( event ) {
@@ -603,18 +610,75 @@ var Divvy;
 			window.addEventListener( 'mouseup', up );
 		});
 
+		if ( touch ) {
+			this.node.addEventListener( 'touchstart', function ( event ) {
+				var touch, pos, finger, start, min, max, afterEnd, move, up, cancel;
+
+				if ( event.touches.length !== 1 ) {
+					return;
+				}
+
+				event.preventDefault();
+
+				touch = event.touches[0];
+				finger = touch.identifier;
+
+				self.setActive();
+
+				// constraints
+				min = Math.max( before.start + before.minPc(), after.end - after.maxPc() );
+				max = Math.min( before.start + before.maxPc(), after.end - after.minPc() );
+
+				move = function ( event ) {
+					var position, touch;
+
+					if ( event.touches.length !== 1 || event.touches[0].identifier !== finger ) {
+						cancel();
+					}
+
+					touch = event.touches[0];
+
+					position = self.getPosition( touch[ type === VERTICAL ? CLIENTX : CLIENTY ] );
+					position = Math.max( min, Math.min( max, position ) );
+
+					before.setEnd( position );
+					after.setStart( position );
+
+					self.setPosition( position );
+
+					fire( self.divvy, 'resize', self.divvy._changedSinceLastResize );
+					self.divvy._changedSinceLastResize = {};
+				};
+
+				up = function ( event ) {
+					self.setInactive();
+					cancel();
+				};
+
+				cancel = function () {
+					window.removeEventListener( 'touchmove', move );
+					window.removeEventListener( 'touchend', up );
+					window.removeEventListener( 'touchcancel', up );
+				};
+
+				window.addEventListener( 'touchmove', move );
+				window.addEventListener( 'touchend', up );
+				window.addEventListener( 'touchcancel', up );
+			});
+		}
+
 		parentNode.appendChild( this.node );
 	};
 
 	Control.prototype = {
-		setActive: function () {
+		setActive: function ( pos ) {
 			addClass( this.node, 'divvy-active' );
-			cursor( this.root, this.type === VERTICAL ? 'ew' : 'ns' );
+			cursor( this.divvy, this.type === VERTICAL ? 'ew' : 'ns' );
 		},
 
-		setInactive: function () {
+		setInactive: function ( pos ) {
 			removeClass( this.node, 'divvy-active' );
-			cursor( this.root, false );
+			cursor( this.divvy, false );
 		},
 
 		getPosition: function ( px ) {
@@ -631,6 +695,7 @@ var Divvy;
 
 		setPosition: function ( pos ) {
 			this.node.style[ this.type === VERTICAL ? LEFT : TOP ] = pos + '%';
+			this.pos = pos;
 		}
 	};
 
