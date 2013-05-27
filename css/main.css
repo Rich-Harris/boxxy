@@ -60,3 +60,9 @@ small {
 	padding: 0.3em;
 	box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3);
 }
+
+.forkme {
+	position: fixed;
+	top: 0;
+	right: 0;
+}
