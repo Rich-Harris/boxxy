@@ -1,4 +1,4 @@
-// Divvy v0.1.3
+// Divvy v0.1.4
 // Copyright (2013) Rich Harris
 // Released under the MIT License
 
