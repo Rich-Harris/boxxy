@@ -1,4 +1,4 @@
-// Divvy v0.1.4
+// Divvy v0.1.5
 // Copyright (2013) Rich Harris
 // Released under the MIT License
 
@@ -734,13 +734,18 @@ var Divvy;
 
 		else {
 			trim = function ( str ) {
-				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
+				return str.replace( /^\s*/, '' ).replace( /\s*$/, '' );
 			};
 
 			addClass = function ( node, className ) {
-				var classNames, index;
+				var classNames, index, i;
 
-				classNames = node.className.split( ' ' ).map( trim );
+				classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' );
+				
+				i = classNames.length;
+				while ( i-- ) {
+					classNames[i] = trim( classNames[i] );
+				}
 
 				if ( classNames.indexOf ) {
 					index = classNames.indexOf( className );
@@ -794,8 +799,8 @@ var Divvy;
 
 }());
 
-if ( typeof global.module !== "undefined" && global.module.exports ) { global.module.exports = Divvy; }
-else if ( typeof global.define !== "undefined" && global.define.amd ) { global.define( function () { return Divvy; }); }
+if ( typeof module !== "undefined" && module.exports ) { module.exports = Divvy; }
+else if ( typeof define !== "undefined" && define.amd ) { define( function () { return Divvy; }); }
 else { global.Divvy = Divvy; }
 
 }( this ));
