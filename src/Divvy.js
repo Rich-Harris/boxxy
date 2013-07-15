@@ -724,13 +724,18 @@ var Divvy;
 
 		else {
 			trim = function ( str ) {
-				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
+				return str.replace( /^\s*/, '' ).replace( /\s*$/, '' );
 			};
 
 			addClass = function ( node, className ) {
-				var classNames, index;
+				var classNames, index, i;
 
-				classNames = node.className.split( ' ' ).map( trim );
+				classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' );
+				
+				i = classNames.length;
+				while ( i-- ) {
+					classNames[i] = trim( classNames[i] );
+				}
 
 				if ( classNames.indexOf ) {
 					index = classNames.indexOf( className );
