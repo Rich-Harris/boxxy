@@ -1,6 +1,6 @@
-var divvy;
+var divvy, init;
 
-window.addEventListener( 'load', function () {
+init = function () {
 
 	'use strict';
 
@@ -48,4 +48,10 @@ window.addEventListener( 'load', function () {
 		}
 	}
 
-});
+};
+
+if ( window.addEventListener ) {
+	window.addEventListener( 'load', init );
+} else {
+	window.onload = init;
+}
