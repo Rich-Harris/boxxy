@@ -14,12 +14,14 @@ var Divvy;
 		indexOf,
 		addClass,
 		removeClass,
+		trim,
 
 		// internal helper functions
 		getState,
 		setState,
 		cursor,
 		fire,
+		throttle,
 
 		// a few string constants
 		ROW = 'row',
@@ -36,7 +38,7 @@ var Divvy;
 	
 
 	Divvy = function ( options ) {
-		var self = this, fragment, i, blocks, type;
+		var self = this, fragment, i, blocks, type, resizeHandler;
 
 		this.el = options.el;
 		fragment = document.createDocumentFragment();
@@ -63,11 +65,17 @@ var Divvy;
 		this.el.appendChild( fragment );
 
 		if ( options.shakeOnResize !== false ) {
-			window.addEventListener( 'resize', function () {
+			resizeHandler = function () {
 				self._changedSinceLastResize = {};
 				self.shake();
 				fire( self, 'resize', self._changedSinceLastResize );
-			});
+			};
+
+			if ( window.addEventListener ) {
+				window.addEventListener( 'resize', resizeHandler );
+			} else if ( window.attachEvent ) {
+				window.attachEvent( 'onresize', resizeHandler );
+			}
 		}
 
 		this._changed = {};
@@ -77,7 +85,16 @@ var Divvy;
 
 	Divvy.prototype = {
 		shake: function () {
-			this.bcr = this.el.getBoundingClientRect();
+			var bcr = this.el.getBoundingClientRect();
+
+			this.bcr = {
+				left: bcr.left,
+				right: bcr.right,
+				top: bcr.top,
+				bottom: bcr.bottom,
+				width: bcr.right - bcr.left,
+				height: bcr.bottom - bcr.top
+			};
 
 			if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
 				return; // nothing to do
@@ -320,7 +337,7 @@ var Divvy;
 		this.max = data.max;
 
 		// were we given an existing node?
-		if ( data instanceof Element ) {
+		if ( data.nodeType === 1 ) { // duck typing, blech. But of course IE fucks up if you do data instanceof Element...
 			data = { node: data };
 		}
 
@@ -381,9 +398,12 @@ var Divvy;
 
 		if ( data.children ) {
 			// find total size of children
-			totalSize = data.children.reduce( function ( prev, curr ) {
-				return prev + ( curr.size || 1 );
-			}, 0 );
+			totalSize = 0;
+
+			i = data.children.length;
+			while ( i-- ) {
+				totalSize += data.children[i].size || 1;
+			}
 
 			this.children = [];
 			this.controls = [];
@@ -461,9 +481,18 @@ var Divvy;
 		},
 
 		shake: function () {
-			var i, len, a, b, control, size;
+			var i, len, a, b, control, size, bcr;
 
-			this.bcr = this.node.getBoundingClientRect();
+			bcr = this.node.getBoundingClientRect();
+
+			this.bcr = {
+				left: bcr.left,
+				right: bcr.right,
+				top: bcr.top,
+				bottom: bcr.bottom,
+				width: bcr.right - bcr.left,
+				height: bcr.bottom - bcr.top
+			};
 
 			if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
 				return; // nothing to do, no need to shake children
@@ -552,7 +581,7 @@ var Divvy;
 
 
 	Control = function ( divvy, parent, parentNode, before, after, type ) {
-		var self = this;
+		var self = this, mousedownHandler;
 
 		this.divvy = divvy;
 		this.parent = parent;
@@ -572,10 +601,12 @@ var Divvy;
 		// initialise position to the start of the next block
 		this.setPosition( after.start );
 
-		this.node.addEventListener( 'mousedown', function ( event ) {
+		mousedownHandler = function ( event ) {
 			var start, min, max, afterEnd, move, up, cancel;
 
-			event.preventDefault();
+			if ( event.preventDefault ) {
+				event.preventDefault();
+			}
 
 			// constraints
 			min = Math.max( before.start + before.minPc(), after.end - after.maxPc() );
@@ -602,13 +633,29 @@ var Divvy;
 			};
 
 			cancel = function () {
-				window.removeEventListener( 'mousemove', move );
-				window.removeEventListener( 'mouseup', up );
+				if ( document.removeEventListener ) {
+					document.removeEventListener( 'mousemove', move );
+					document.removeEventListener( 'mouseup', up );
+				} else if ( document.detachEvent ) {
+					document.detachEvent( 'onmousemove', move );
+					document.detachEvent( 'onmouseup', up );
+				}
 			};
 
-			window.addEventListener( 'mousemove', move );
-			window.addEventListener( 'mouseup', up );
-		});
+			if ( document.addEventListener ) {
+				document.addEventListener( 'mousemove', move );
+				document.addEventListener( 'mouseup', up );
+			} else if ( document.attachEvent ) {
+				document.attachEvent( 'onmousemove', move = throttle( move ) );
+				document.attachEvent( 'onmouseup', up );
+			}	
+		};
+
+		if ( this.node.addEventListener ) {
+			this.node.addEventListener( 'mousedown', mousedownHandler );
+		} else if ( this.node.attachEvent ) {
+			this.node.attachEvent( 'onmousedown', mousedownHandler );
+		}
 
 		if ( touch ) {
 			this.node.addEventListener( 'touchstart', function ( event ) {
@@ -713,9 +760,11 @@ var Divvy;
 		return -1;
 	};
 
-	addClass = function ( node, className ) {
-		var trim;
+	trim = function ( str ) {
+		return str.replace( /^\s*/, '' ).replace( /\s*$/, '' );
+	};
 
+	addClass = function ( node, className ) {
 		if ( node.classList && node.classList.add ) {
 			addClass = function ( node, className ) {
 				node.classList.add( className );
@@ -723,10 +772,6 @@ var Divvy;
 		}
 
 		else {
-			trim = function ( str ) {
-				return str.replace( /^\s*/, '' ).replace( /\s*$/, '' );
-			};
-
 			addClass = function ( node, className ) {
 				var classNames, index, i;
 
@@ -744,7 +789,7 @@ var Divvy;
 				}
 
 				if ( index === -1 ) {
-					node.className = classNames.concat( className ).join( ' ' );
+					node.setAttribute( 'class', classNames.concat( className ).join( ' ' ) );
 				}
 			};
 		}
@@ -753,8 +798,6 @@ var Divvy;
 	};
 
 	removeClass = function ( node, className ) {
-		var trim;
-
 		if ( node.classList && node.classList.remove ) {
 			removeClass = function ( node, className ) {
 				node.classList.remove( className );
@@ -762,14 +805,15 @@ var Divvy;
 		}
 
 		else {
-			trim = function ( str ) {
-				return str.replace( /^\s*/, '' ).replace( /\s*$/ );
-			};
-
 			removeClass = function ( node, className ) {
-				var classNames, index;
+				var classNames, index, i;
 
-				classNames = node.className.split( ' ' ).map( trim );
+				classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' );
+				
+				i = classNames.length;
+				while ( i-- ) {
+					classNames[i] = trim( classNames[i] );
+				}
 
 				if ( classNames.indexOf ) {
 					index = classNames.indexOf( className );
@@ -779,12 +823,31 @@ var Divvy;
 
 				if ( index !== -1 ) {
 					classNames.splice( index, 1 );
-					node.className = classNames.join( ' ' );
+					node.setAttribute( 'class', classNames.join( ' ' ) );
 				}
 			};
 		}
 
 		removeClass( node, className );
+	};
+
+	throttle = function ( fn, wait ) {
+		var throttled, lastCalled;
+
+		wait = wait || 500;
+
+		throttled = function () {
+			var timeNow;
+
+			timeNow = new Date();
+
+			if ( !lastCalled || ( timeNow - lastCalled ) > wait ) {
+				return fn.apply( this, arguments );
+				lastCalled = timeNow;
+			}
+		};
+
+		return throttled;
 	};
 
 }());
