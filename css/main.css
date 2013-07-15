@@ -65,4 +65,9 @@ small {
 	position: fixed;
 	top: 0;
 	right: 0;
+	border: none;
+}
+
+.forkme img {
+	border: 0;
 }
