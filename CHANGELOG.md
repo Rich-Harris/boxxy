@@ -8,3 +8,5 @@
 	* Removed some stuff from the public API
 * 0.1.4
 	* Touch support
+* 0.1.5
+	* IE bug fixed
