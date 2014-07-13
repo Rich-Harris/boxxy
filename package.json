@@ -3,7 +3,7 @@
   "description": "Layout manager for web apps",
   "author": "Rich Harris",
   "version": "0.1.6",
-  "main": "Divvy.js",
+  "main": "divvy.js",
   "devDependencies": {
     "grunt": "~0.4.1",
     "grunt-contrib-jshint": "~0.2.0",
@@ -13,13 +13,10 @@
     "grunt-contrib-watch": "~0.2.0",
     "jit-grunt": "~0.7.0"
   },
-  "jam": {
-    "main": "Divvy.js",
-    "include": [
-      "Divvy.js",
-      "Divvy.min.js",
-      "Divvy.css",
-      "README.md"
-    ]
-  }
+  "license": "MIT",
+  "files": [
+    "divvy.js",
+    "divvy.min.js",
+    "divvy.css",
+  ]
 }

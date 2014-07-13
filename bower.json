@@ -1,0 +1,13 @@
+{
+  "name": "divvy",
+  "description": "Layout manager for web apps",
+  "author": "Rich Harris",
+  "version": "0.1.6",
+  "main": "divvy.js",
+  "license": "MIT",
+  "include": [
+    "divvy.js",
+    "divvy.min.js",
+    "divvy.css",
+  ]
+}
