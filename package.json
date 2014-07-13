@@ -17,6 +17,6 @@
   "files": [
     "divvy.js",
     "divvy.min.js",
-    "divvy.css",
+    "divvy.css"
   ]
 }

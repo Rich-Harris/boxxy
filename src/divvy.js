@@ -35,7 +35,7 @@ var Divvy;
 		CLIENTX = 'clientX',
 		CLIENTY = 'clientY';
 
-	
+
 
 	Divvy = function ( options ) {
 		var self = this, fragment, i, blocks, type, resizeHandler;
@@ -133,7 +133,7 @@ var Divvy;
 			for ( key in changed ) {
 				if ( changed.hasOwnProperty( key ) ) {
 					fire( this, 'resize', changed );
-					
+
 					// ...but only the one
 					break;
 				}
@@ -300,7 +300,7 @@ var Divvy;
 
 			i = block.children.length;
 			while ( i-- ) {
-				setState( divvy, block.children[i], state, changed, true );	
+				setState( divvy, block.children[i], state, changed, true );
 			}
 		}
 
@@ -392,7 +392,7 @@ var Divvy;
 		if ( edges.right ) { addClass( this.node, 'divvy-right' ); }
 		if ( edges.bottom ) { addClass( this.node, 'divvy-bottom' ); }
 		if ( edges.left ) { addClass( this.node, 'divvy-left' ); }
-		
+
 		this.node.style[ type === COLUMN ? LEFT : TOP ] = start + '%';
 		this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
 
@@ -429,7 +429,7 @@ var Divvy;
 
 
 				this.children[i] = new Block( divvy, this, this.node, ( id + i ), childData, total, childSize, type === COLUMN ? ROW : COLUMN, childEdges );
-				
+
 				total += childSize;
 			}
 
@@ -648,7 +648,7 @@ var Divvy;
 			} else if ( document.attachEvent ) {
 				document.attachEvent( 'onmousemove', move = throttle( move ) );
 				document.attachEvent( 'onmouseup', up );
-			}	
+			}
 		};
 
 		if ( this.node.addEventListener ) {
@@ -776,7 +776,7 @@ var Divvy;
 				var classNames, index, i;
 
 				classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' );
-				
+
 				i = classNames.length;
 				while ( i-- ) {
 					classNames[i] = trim( classNames[i] );
@@ -809,7 +809,7 @@ var Divvy;
 				var classNames, index, i;
 
 				classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' );
-				
+
 				i = classNames.length;
 				while ( i-- ) {
 					classNames[i] = trim( classNames[i] );
