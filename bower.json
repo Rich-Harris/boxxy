@@ -5,9 +5,15 @@
   "version": "0.1.6",
   "main": "divvy.js",
   "license": "MIT",
-  "include": [
-    "divvy.js",
-    "divvy.min.js",
-    "divvy.css"
+  "ignore": [
+    ".*",
+    "*.json",
+    "*.md",
+    "build",
+    "grunt",
+    "node_modules",
+    "release",
+    "src",
+    "Gruntfile.js"
   ]
 }
