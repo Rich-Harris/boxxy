@@ -1,72 +1,36 @@
+/* The one-size-fits-all key to Grunt.js happiness - http://bit.ly/grunt-happy */
+
+/*global module:false*/
 module.exports = function ( grunt ) {
 
-	'use strict';
+    'use strict';
 
-	grunt.initConfig({
+    var config, dependency;
 
-		pkg: grunt.file.readJSON( 'package.json' ),
+    require( 'jit-grunt' )( grunt );
 
-		watch: {
-			main: {
-				files: 'src/**/*.js',
-				tasks: 'default'
-			}
-		},
+    config = {
+        pkg: grunt.file.readJSON( 'package.json' )
+    };
 
-		jshint: {
-			jshintrc: '.jshintrc'
-		},
+    // Read config files from the `grunt/config/` folder
+    grunt.file.expand( 'grunt/config/*.js' ).forEach( function ( path ) {
+        var property = /grunt\/config\/(.+)\.js/.exec( path )[1],
+            module = require( './' + path );
+        config[ property ] = typeof module === 'function' ? module( grunt ) : module;
+    });
 
-		concat: {
-			options: {
-				banner: '// Divvy v<%= pkg.version %>\n// Copyright (2013) Rich Harris\n// Released under the MIT License\n\n// https://github.com/Rich-Harris/Divvy\n\n;(function ( global ) {\n\n\'use strict\';\n\n',
-				footer: '\n\nif ( typeof module !== "undefined" && module.exports ) { module.exports = Divvy; }\n' +
-					'else if ( typeof define !== "undefined" && define.amd ) { define( function () { return Divvy; }); }\n' +
-					'else { global.Divvy = Divvy; }\n\n}( this ));'
-			},
-			build: {
-				dest: 'build/Divvy.js',
-				src: [ 'src/Divvy.js' ]
-			}
-		},
+    // Initialise grunt
+    grunt.initConfig( config );
 
-		uglify: {
-			build: {
-				src: '<%= concat.build.dest %>',
-				dest: 'build/Divvy.min.js'
-			}
-		},
+    // Load development dependencies specified in package.json
+    for ( dependency in config.pkg.devDependencies ) {
+        if ( /^grunt-/.test( dependency) ) {
+            grunt.loadNpmTasks( dependency );
+        }
+    }
 
-		copy: {
-			css: {
-				files: {
-					'build/Divvy.css': 'src/Divvy.css'
-				}
-			},
-			release: {
-				files: {
-					'release/<%= pkg.version %>/Divvy.js': '<%= concat.build.dest %>',
-					'release/<%= pkg.version %>/Divvy.min.js': '<%= uglify.build.dest %>',
-					'release/<%= pkg.version %>/Divvy.css': 'src/Divvy.css'
-				}
-			},
-			shortcut: {
-				files: {
-					'Divvy.js': '<%= concat.build.dest %>',
-					'Divvy.min.js': '<%= uglify.build.dest %>',
-					'Divvy.css': 'src/Divvy.css'
-				}
-			}
-		}
+    // Load tasks from the `grunt-tasks/` folder
+    grunt.loadTasks( 'grunt/tasks' );
 
-	});
-
-	grunt.loadNpmTasks( 'grunt-contrib-concat' );
-	grunt.loadNpmTasks( 'grunt-contrib-copy' );
-	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
-	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
-	grunt.loadNpmTasks( 'grunt-contrib-watch' );
-
-	grunt.registerTask( 'default', [ 'jshint', 'concat', 'uglify', 'copy:css' ] );
-	grunt.registerTask( 'release', [ 'default', 'copy:release', 'copy:shortcut' ] );
 };
