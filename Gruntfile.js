@@ -10,7 +10,9 @@ module.exports = function ( grunt ) {
     require( 'jit-grunt' )( grunt );
 
     config = {
-        pkg: grunt.file.readJSON( 'package.json' )
+        pkg: grunt.file.readJSON( 'package.json' ),
+        intro: grunt.file.read( 'wrapper/intro.js' ),
+        outro: grunt.file.read( 'wrapper/outro.js' )
     };
 
     // Read config files from the `grunt/config/` folder

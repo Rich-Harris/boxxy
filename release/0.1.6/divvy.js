@@ -6,7 +6,7 @@
 
 ;(function ( global ) {
 
-'use strict';
+	'use strict';
 
 var Divvy;
 
@@ -861,10 +861,19 @@ var Divvy;
 	};
 
 }());
+	// export as AMD
+	if ( typeof define === 'function' && define.amd ) {
+		define( function () { return Divvy; });
+	}
 
+	// export as CJS
+	else if ( typeof module !== 'undefined' && module.exports ) {
+		module.exports = Divvy;
+	}
 
-if ( typeof module !== "undefined" && module.exports ) { module.exports = Divvy; }
-else if ( typeof define !== "undefined" && define.amd ) { define( function () { return Divvy; }); }
-else { global.Divvy = Divvy; }
+	// export as browser global
+	else {
+		global.Divvy = Divvy;
+	}
 
 }( this ));
