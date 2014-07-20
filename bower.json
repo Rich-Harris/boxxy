@@ -2,7 +2,7 @@
   "name": "divvy",
   "description": "Layout manager for web apps",
   "author": "Rich Harris",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "main": "divvy.js",
   "license": "MIT",
   "ignore": [
