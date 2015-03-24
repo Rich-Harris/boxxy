@@ -1,0 +1,73 @@
+@font-face{
+	font-family: 'Voltaire';
+	src: url('fonts/Voltaire.eot');
+	src: url('fonts/Voltaire.eot?#iefix') format('embedded-opentype'),
+	     url('fonts/Voltaire.woff') format('woff'),
+	     url('fonts/Voltaire.ttf') format('truetype'),
+	     url('fonts/Voltaire.svg#webfont') format('svg');
+}
+
+html, body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+}
+
+body {
+	font-family: 'Baskerville', 'Garamond', 'Georgia';
+	font-size: 16px;
+	color: #333;
+}
+
+#outer {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	padding: 5em 1em 1em 1em;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+h1 {
+	position: absolute;
+	left: 16px;
+	left: 1rem;
+	top: 16px;
+	top: 1rem;
+	margin: 0;
+	font-family: 'Voltaire';
+	font-weight: normal;
+}
+
+small {
+	font-size: 0.6em;
+	color: #666;
+	padding-left: 0.3em;
+}
+
+#inner {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.hidden {
+	display: none;
+}
+
+.divvy-inner {
+	padding: 0.3em;
+	box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3);
+}
+
+.forkme {
+	position: fixed;
+	top: 0;
+	right: 0;
+	border: none;
+}
+
+.forkme img {
+	border: 0;
+}

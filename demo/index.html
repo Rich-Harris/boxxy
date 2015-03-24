@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang='en-GB'>
+<head>
+	<meta charset='utf-8'>
+	<title>boxxy.js demo</title>
+
+	<!-- CSS -->
+	<link rel='stylesheet' href='demo.css'>
+	<link rel='stylesheet' href='Boxxy.css'>
+</head>
+
+<body>
+
+	<div id='outer'>
+		<h1>boxxy.js <small>layout management for web apps</small></h1>
+		<div id='inner'></div>
+	</div>
+
+	<!-- these nodes will become part of the boxxy -->
+	<div class='hidden'>
+		<div id='left-top'>This box existed on the page before the boxxy was created &ndash; view source to see what I mean.</div>
+
+		<div id='right-bottom'>Drag the white handles between blocks to resize rows and columns. The left-hand column has been given a minimum width of 100px as an example of using boxxy.js with constraints.</div>
+	</div>
+
+	<!-- progressive enhancement yeah! -->
+	<noscript>
+		<style type='text/css'>
+			.hidden {
+				display: block;
+			}
+		</style>
+	</noscript>
+
+	<a class='forkme' href='https://github.com/Rich-Harris/boxxy'>
+		<img src='forkme.png'>
+	</a>
+
+	<!-- JS -->
+	<script src='boxxy.js'></script>
+	<script src='demo.js'></script>
+</body>
+</html>
