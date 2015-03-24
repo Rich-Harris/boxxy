@@ -8,3 +8,4 @@ export const VERTICAL = 'vertical';
 export const HORIZONTAL = 'horizontal';
 export const CLIENTX = 'clientX';
 export const CLIENTY = 'clientY';
+export const CONTROL = '__control';

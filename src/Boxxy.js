@@ -1,7 +1,7 @@
 import Block from './Block';
 import getNode from './utils/getNode';
-import { getState, setState } from './utils/state';
 import { addClass } from './utils/class';
+import { setStyles } from './utils/style';
 import configure from './utils/configure';
 import {
 	ROW,
@@ -11,7 +11,7 @@ import {
 } from './utils/constants';
 
 function normalise ( block, options ) {
-	let node;
+	let id, node;
 
 	// expand short-form blocks
 	if ( Object.prototype.toString.call( block ) === '[object Array]' ) {
@@ -22,9 +22,9 @@ function normalise ( block, options ) {
 
 	// TODO deprecate this behaviour
 	if ( typeof block === 'string' ) {
-		let id = block;
+		let nodeId = block;
 		block = { node: document.createElement( 'boxxy-block' ) };
-		block.node.id = id;
+		block.node.id = nodeId;
 	}
 
 	let children;
@@ -38,32 +38,61 @@ function normalise ( block, options ) {
 		children = block.children.map( function ( child, i ) {
 			return normalise( child, {
 				type: options.type === COLUMN ? ROW : COLUMN,
-				totalSize: totalSize / block.children.length,
+				isFirst: i === 0,
+				isLast: i === block.children.length - 1,
+				totalSize: totalSize,
 				lineage: options.lineage.concat( i )
 			});
 		});
 	}
 
 	node = block.node ? getNode( block.node ) : document.createElement( 'boxxy-block' );
-	node.setAttribute( 'data-boxxy-id', options.lineage.join( '-' ) );
+	id = options.lineage.join( '-' );
+
+	node.setAttribute( 'data-boxxy-id', id );
+
+	setStyles( node, {
+		position: 'absolute',
+		width: '100%',
+		height: '100%'
+	});
 
 	return {
-		type:     options.type,
-		size:     ( 'size'    in block ? block.size :    1 ) / options.totalSize,
-		minSize:  ( 'minSize' in block ? block.minSize : 0 ) / options.totalSize,
-		maxSize:  ( 'maxSize' in block ? block.maxSize : 1 ) / options.totalSize,
+		id:       id,
 		node:     node,
-		children: children
+		children: children,
+
+		type:     options.type,
+		isFirst:  options.isFirst,
+		isLast:   options.isLast,
+		size:     ( 'size' in block ? block.size : 1 ) / options.totalSize,
+		min:      block.min || 0,
+		max:      block.max
 	};
+}
+
+function getInitialState ( blocks, state ) {
+	let acc = 0;
+
+	blocks.forEach( block => {
+		if ( block.children ) {
+			getInitialState( block.children, state );
+		}
+
+		state[ block.id ] = { start: acc, size: block.size };
+		acc += block.size;
+	});
 }
 
 function Boxxy ( node, options ) {
 	var blocks, resizeHandler;
 
-	this.node = getNode( node );
-	if ( !this.node ) {
+	this.container = getNode( node );
+	if ( !this.container ) {
 		throw new Error( '`node` must be a DOM node, an ID, or a CSS selector' );
 	}
+
+	this.node = document.createElement( 'boxxy' );
 
 	this._defaultCursor = this.node.style.cursor;
 
@@ -80,14 +109,13 @@ function Boxxy ( node, options ) {
 	}
 
 	let normalised = normalise({
-		node: node,
+		node: this.node,
 		children: blocks
 	}, {
 		type: this.type,
 		totalSize: 1,
 		lineage: [ 0 ]
 	});
-	console.log( 'normalised', normalised );
 
 	this.blocks = {};
 	this._callbacks = {}; // events
@@ -98,9 +126,9 @@ function Boxxy ( node, options ) {
 		boxxy: this,
 		parent: this,
 		id: 'boxxy-0',
-		data: { children: blocks },
+		data: normalised,
 		start: 0,
-		size: 100,
+		size: 1,
 		type: this.type,
 		edges: { top: true, right: true, bottom: true, left: true }
 	});
@@ -115,8 +143,21 @@ function Boxxy ( node, options ) {
 
 	window.addEventListener( 'resize', resizeHandler );
 
+	this.container.appendChild( this.node );
+
 	this._changed = {};
 	this._changedSinceLastResize = {};
+
+	let initialState = {};
+	initialState[ this.root.id ] = { start: 0, size: 1 };
+	getInitialState( normalised.children, initialState );
+	console.log( 'initialState', initialState );
+
+	initialState[ '0-0' ].size = 0.3;
+	initialState[ '0-1' ].start = 0.3;
+	initialState[ '0-1' ].size = 0.7;
+
+	this.setState( initialState );
 	this.shake();
 }
 
@@ -173,14 +214,14 @@ Boxxy.prototype = {
 	getState () {
 		var state = {};
 
-		getState( this.root, state );
+		this.root.getState( state );
 		return state;
 	},
 
 	setState ( state ) {
 		var changed = {}, key;
 
-		setState( this, this.root, state, changed );
+		this.root.setState( state, changed );
 
 		// if any of the sizes have changed, fire a resize event...
 		for ( key in changed ) {

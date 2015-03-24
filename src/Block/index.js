@@ -1,6 +1,6 @@
-import Control from './Control';
-import { addClass } from './utils/class';
-import { setStyles } from './utils/style';
+import Control from '../Control';
+import { addClass } from '../utils/class';
+import createBlockNode from './createBlockNode';
 import {
 	ROW,
 	COLUMN,
@@ -10,70 +10,28 @@ import {
 	TOP,
 	VERTICAL,
 	HORIZONTAL
-} from './utils/constants';
-
-function normaliseData ( data ) {
-	// were we given an existing node?
-	if ( data.nodeType === 1 ) { // duck typing, blech. But of course IE fucks up if you do data instanceof Element...
-		return { node: data };
-	}
-
-	// or an ID string?
-	if ( typeof data === 'string' ) {
-		return { id: data };
-	}
-
-	// ...or an array of children?
-	if ( Object.prototype.toString.call( data ) === '[object Array]' ) {
-		return { children: data };
-	}
-
-	return data;
-}
-
-function createBlockNode () {
-	let node = document.createElement( 'boxxy-block' );
-
-	setStyles( node, {
-		position: 'absolute',
-		width: '100%',
-		height: '100%',
-		boxSizing: 'border-box',
-		overflow: 'hidden'
-	});
-
-	return node;
-}
+} from '../utils/constants';
 
 function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 	var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
-	this.start = start;
-	this.size = size;
-	this.end = this.start + this.size;
+	this.start = this.size = this.end = null;
 
 	this.type = type;
 	this.boxxy = boxxy;
 	this.parent = parent;
-	this.edges = edges;
 
 	this.min = data.min || boxxy.min;
 	this.max = data.max;
 
-	data = normaliseData( data );
-
 	this.id = data.id || id;
 
-	this.node = createBlockNode();
-	addClass( this.node, 'boxxy-block' );
+	this.node = createBlockNode( edges );
 
-	if ( data.children && data.children.length ) {
-		// Branch block
-		this.node.id = this.id;
-	}
-
-	else {
+	if ( !data.children ) {
 		// Leaf block
+		this.isLeaf = true;
+
 		addClass( this.node, 'boxxy-leaf' );
 
 		// do we have an ID that references an existing node?
@@ -92,15 +50,7 @@ function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 		this.inner.id = this.id;
 	}
 
-	if ( edges.top )    { addClass( this.node, 'boxxy-top'    ); }
-	if ( edges.right )  { addClass( this.node, 'boxxy-right'  ); }
-	if ( edges.bottom ) { addClass( this.node, 'boxxy-bottom' ); }
-	if ( edges.left )   { addClass( this.node, 'boxxy-left'   ); }
-
-	this.node.style[ type === COLUMN ? LEFT  : TOP    ] = start + '%';
-	this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
-
-	if ( data.children ) {
+	else if ( data.children ) {
 		// find total size of children
 		totalSize = 0;
 
@@ -115,7 +65,7 @@ function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 		total = 0;
 		for ( i=0; i<data.children.length; i+=1 ) {
 			childData = data.children[i];
-			childSize = 100 * ( ( childData.size || 1 ) / totalSize );
+			childSize = ( childData.size || 1 ) / totalSize;
 
 			if ( type === COLUMN ) {
 				childEdges = {
@@ -165,6 +115,54 @@ function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 }
 
 Block.prototype = {
+	getState ( state ) {
+		var i;
+
+		state[ this.id ] = { start: this.start, size: this.size };
+
+		if ( !this.children ) {
+			return;
+		}
+
+		i = this.children.length;
+		while ( i-- ) {
+			this.children[i].getState( state );
+		}
+	},
+
+	setState ( state, changed ) {
+		var i, len, child, totalSize, blockState;
+
+		blockState = state[ this.id ];
+
+		if ( !blockState ) {
+			// this should never happen...
+			throw new Error( 'Could not set state' );
+		}
+
+		if ( ( this.start !== blockState.start || this.size !== blockState.size ) && this.isLeaf ) {
+			this.boxxy._changed[ this.id ] = changed[ this.id ] = true;
+		}
+
+		this.update( blockState.start, blockState.size, blockState.start + blockState.size );
+
+		if ( this.children ) {
+			totalSize = 0;
+			len = this.children.length;
+
+			for ( i=0; i<len; i+=1 ) {
+				child = this.children[i];
+
+				child.setState( state, changed );
+				totalSize += child.size;
+
+				if ( this.controls[i] ) {
+					this.controls[i].setPosition( totalSize );
+				}
+			}
+		}
+	},
+
 	setStart ( start ) {
 		var previousStart, previousSize, change, size;
 
@@ -174,13 +172,7 @@ Block.prototype = {
 		change = start - previousStart;
 		size = previousSize - change;
 
-		this.node.style[ this.type === COLUMN ? LEFT : TOP ] = start + '%';
-		this.node.style[ this.type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
-
-		this.start = start;
-		this.size = size;
-
-		this.shake();
+		this.update( start, size, this.end );
 	},
 
 	setEnd ( end ) {
@@ -192,10 +184,16 @@ Block.prototype = {
 		change = end - previousEnd;
 		size = previousSize + change;
 
-		this.node.style[ this.type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
+		this.update( this.start, size, end );
+	},
 
-		this.end = end;
+	update ( start, size, end ) {
+		this.node.style[ this.type === COLUMN ? LEFT  : TOP    ] = ( 100 * start ) + '%';
+		this.node.style[ this.type === COLUMN ? WIDTH : HEIGHT ] = ( 100 * size ) + '%';
+
+		this.start = start;
 		this.size = size;
+		this.end = end;
 
 		this.shake();
 	},
@@ -220,7 +218,10 @@ Block.prototype = {
 
 		this.width = this.bcr.width;
 		this.height = this.bcr.height;
-		this.boxxy._changed[ this.id ] = this.boxxy._changedSinceLastResize[ this.id ] = true;
+
+		if ( this.isLeaf ) {
+			this.boxxy._changed[ this.id ] = this.boxxy._changedSinceLastResize[ this.id ] = true;
+		}
 
 		// if we don't have any children, we don't need to go any further
 		if ( !this.children ) {
@@ -283,19 +284,19 @@ Block.prototype = {
 
 		// calculate minimum % width from pixels
 		totalPixels = this.parent.pixelSize;
-		return ( this.min / totalPixels ) * 100;
+		return ( this.min / totalPixels );
 	},
 
 	maxPc () {
 		var totalPixels;
 
 		if ( !this.max ) {
-			return 100;
+			return 1;
 		}
 
 		// calculate minimum % width from pixels
 		totalPixels = this.parent.pixelSize;
-		return ( this.max / totalPixels ) * 100;
+		return ( this.max / totalPixels );
 	}
 };
 
