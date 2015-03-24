@@ -101,10 +101,10 @@ function Boxxy ( node, options ) {
 	}
 
 	if ( options.columns ) {
-		this.type = ROW;
+		this.type = COLUMN;
 		blocks = options.columns;
 	} else if ( options.rows ) {
-		this.type = COLUMN;
+		this.type = ROW;
 		blocks = options.rows;
 	}
 
@@ -125,11 +125,7 @@ function Boxxy ( node, options ) {
 	this.root = new Block({
 		boxxy: this,
 		parent: this,
-		id: 'boxxy-0',
 		data: normalised,
-		start: 0,
-		size: 1,
-		type: this.type,
 		edges: { top: true, right: true, bottom: true, left: true }
 	});
 
@@ -151,11 +147,6 @@ function Boxxy ( node, options ) {
 	let initialState = {};
 	initialState[ this.root.id ] = { start: 0, size: 1 };
 	getInitialState( normalised.children, initialState );
-	console.log( 'initialState', initialState );
-
-	initialState[ '0-0' ].size = 0.3;
-	initialState[ '0-1' ].start = 0.3;
-	initialState[ '0-1' ].size = 0.7;
 
 	this.setState( initialState );
 	this.shake();

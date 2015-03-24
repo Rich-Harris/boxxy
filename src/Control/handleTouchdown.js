@@ -18,23 +18,12 @@ export default function ( event ) {
 	let control = this[ CONTROL ];
 	control.activate();
 
-	// constraints
-	let min = Math.max( control.before.start + control.before.minPc(), control.after.end - control.after.maxPc() );
-	let max = Math.min( control.before.start + control.before.maxPc(), control.after.end - control.after.minPc() );
-
 	function move ( event ) {
-		var position, touch;
-
 		if ( event.touches.length !== 1 || event.touches[0].identifier !== finger ) {
 			cancel();
 		}
 
-		touch = event.touches[0];
-
-		position = control.getPosition( touch[ control.type === VERTICAL ? CLIENTX : CLIENTY ] );
-		position = Math.max( min, Math.min( max, position ) );
-
-		control.setPosition( position );
+		control.setPixelPosition( touch[ control.type === VERTICAL ? CLIENTX : CLIENTY ] );
 	}
 
 	function up () {

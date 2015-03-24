@@ -6,10 +6,10 @@ import {
 	CONTROL
 } from '../utils/constants';
 
-export default function createControlNode ( control, type ) {
+export default function createControlNode ( control ) {
 	var node = document.createElement( 'boxxy-control' );
 
-	addClass( node, `boxxy-${type}-control` );
+	addClass( node, `boxxy-${control.type}-control` );
 
 	setStyles( node, {
 		position: 'absolute',
@@ -20,7 +20,7 @@ export default function createControlNode ( control, type ) {
 		addClass( node, 'boxxy-touch-control' );
 	}
 
-	if ( type === VERTICAL ) {
+	if ( control.type === VERTICAL ) {
 		setStyles( node, {
 			width: '0',
 			height: '100%'

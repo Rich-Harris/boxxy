@@ -22,17 +22,8 @@ export default function handleMousedown ( event ) {
 		event.preventDefault();
 	}
 
-	// constraints
-	let min = Math.max( control.before.start + control.before.minPc(), control.after.end - control.after.maxPc() );
-	let max = Math.min( control.before.start + control.before.maxPc(), control.after.end - control.after.minPc() );
-
 	function move ( event ) {
-		var position;
-
-		position = control.getPosition( event[ control.type === VERTICAL ? CLIENTX : CLIENTY ] );
-		position = Math.max( min, Math.min( max, position ) );
-
-		control.setPosition( position );
+		control.setPixelPosition( event[ control.type === VERTICAL ? CLIENTX : CLIENTY ] );
 	}
 
 	function up () {

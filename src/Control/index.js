@@ -3,23 +3,26 @@ import {
 	HEIGHT,
 	LEFT,
 	TOP,
+	ROW,
+	HORIZONTAL,
 	VERTICAL
 } from '../utils/constants';
 import { addClass, removeClass } from '../utils/class';
 import hasTouch from '../utils/hasTouch';
+import clamp from '../utils/clamp';
 import createControlNode from './createControlNode';
 import handleMousedown from './handleMousedown';
 import handleTouchdown from './handleTouchdown';
 
 
-function Control ({ boxxy, parent, before, after, type }) {
+function Control ({ boxxy, parent, before, after }) {
 	this.boxxy = boxxy;
 	this.parent = parent;
 	this.before = before;
 	this.after = after;
-	this.type = type;
+	this.type = parent.type === ROW ? VERTICAL : HORIZONTAL;
 
-	this.node = createControlNode( this, type );
+	this.node = createControlNode( this );
 
 	this.node.addEventListener( 'mousedown', handleMousedown );
 
@@ -41,24 +44,28 @@ Control.prototype = {
 		this.boxxy._setCursor( false );
 	},
 
-	getPosition ( px ) {
-		var bcr, bcrStart, bcrSize, position;
+	setPixelPosition ( px ) {
+		let bcr = this.parent.bcr;
+		let bcrStart = bcr[ this.type === VERTICAL ? LEFT : TOP ];
+		let bcrSize = bcr[ this.type === VERTICAL ? WIDTH : HEIGHT ];
 
-		bcr = this.parent.bcr;
-		bcrStart = bcr[ this.type === VERTICAL ? LEFT : TOP ];
-		bcrSize = bcr[ this.type === VERTICAL ? WIDTH : HEIGHT ];
+		let percentOffset = ( px - bcrStart ) / bcrSize;
 
-		position = ( px - bcrStart ) / bcrSize;
+		// constrain
+		let min = Math.max( this.before.start + this.before.minPc(), this.after.end - this.after.maxPc() );
+		let max = Math.min( this.before.start + this.before.maxPc(), this.after.end - this.after.minPc() );
 
-		return position;
+		percentOffset = clamp( percentOffset, min, max );
+
+		this.setPercentOffset( percentOffset );
 	},
 
-	setPosition ( pos ) {
-		this.node.style[ this.type === VERTICAL ? LEFT : TOP ] = ( 100 * pos ) + '%';
-		this.pos = pos;
+	setPercentOffset( percentOffset ) {
+		this.node.style[ this.type === VERTICAL ? LEFT : TOP ] = ( 100 * percentOffset ) + '%';
+		this.pos = percentOffset;
 
-		this.before.setEnd( pos );
-		this.after.setStart( pos );
+		this.before.setEnd( percentOffset );
+		this.after.setStart( percentOffset );
 
 		this.boxxy._fire( 'resize', this.boxxy._changedSinceLastResize );
 		this.boxxy._changedSinceLastResize = {};

@@ -1,30 +1,20 @@
 import Control from '../Control';
 import { addClass } from '../utils/class';
 import createBlockNode from './createBlockNode';
-import {
-	ROW,
-	COLUMN,
-	WIDTH,
-	HEIGHT,
-	LEFT,
-	TOP,
-	VERTICAL,
-	HORIZONTAL
-} from '../utils/constants';
+import { ROW, COLUMN, WIDTH, HEIGHT, LEFT, TOP } from '../utils/constants';
 
-function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
+function Block ({ boxxy, parent, data, edges }) {
 	var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
 	this.start = this.size = this.end = null;
 
-	this.type = type;
+	this.type = parent.type === ROW ? COLUMN : ROW;
 	this.boxxy = boxxy;
 	this.parent = parent;
 
+	this.id = data.id;
 	this.min = data.min || boxxy.min;
 	this.max = data.max;
-
-	this.id = data.id || id;
 
 	this.node = createBlockNode( edges );
 
@@ -67,7 +57,7 @@ function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 			childData = data.children[i];
 			childSize = ( childData.size || 1 ) / totalSize;
 
-			if ( type === COLUMN ) {
+			if ( this.type === COLUMN ) {
 				childEdges = {
 					top: edges.top && ( i === 0 ),
 					bottom: edges.bottom && ( i === ( data.children.length - 1 ) ),
@@ -86,11 +76,7 @@ function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 			this.children[i] = new Block({
 				boxxy,
 				parent: this,
-				id: ( id + i ),
 				data: childData,
-				start: total,
-				size: childSize,
-				type: type === COLUMN ? ROW : COLUMN,
 				edges: childEdges
 			});
 
@@ -105,8 +91,7 @@ function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 				boxxy,
 				parent: this,
 				before,
-				after,
-				type: type === ROW ? VERTICAL : HORIZONTAL
+				after
 			});
 		}
 	}
@@ -157,7 +142,7 @@ Block.prototype = {
 				totalSize += child.size;
 
 				if ( this.controls[i] ) {
-					this.controls[i].setPosition( totalSize );
+					this.controls[i].setPercentOffset( totalSize );
 				}
 			}
 		}
@@ -239,16 +224,12 @@ Block.prototype = {
 
 			size = a.minPc();
 			if ( a.size < size ) {
-				a.setEnd( a.start + size );
-				b.setStart( a.start + size );
-				control.setPosition( a.start + size );
+				control.setPercentOffset( a.start + size );
 			}
 
 			size = a.maxPc();
 			if ( a.size > size ) {
-				a.setEnd( a.start + size );
-				b.setStart( a.start + size );
-				control.setPosition( a.start + size );
+				control.setPercentOffset( a.start + size );
 			}
 		}
 
@@ -260,16 +241,12 @@ Block.prototype = {
 
 			size = b.minPc();
 			if ( b.size < size ) {
-				a.setEnd( b.end - size );
-				b.setStart( b.end - size );
-				control.setPosition( b.end - size );
+				control.setPercentOffset( b.end - size );
 			}
 
 			size = b.maxPc();
 			if ( b.size > size ) {
-				a.setEnd( b.end - size );
-				b.setStart( b.end - size );
-				control.setPosition( b.end - size );
+				control.setPercentOffset( b.end - size );
 			}
 		}
 
