@@ -2,6 +2,7 @@
 	"esnext": true,
 	"undef": true,
 	"unused": true,
+	"boss": true,
 	"globals": {
 		"document": true,
 		"window": true,

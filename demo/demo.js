@@ -14,8 +14,7 @@ init = function () {
 		return 'rgb(' + [ red, green, blue ].join( ',' ) + ')';
 	};
 
-	boxxy = new Boxxy({
-		el: document.getElementById( 'inner' ),
+	boxxy = new Boxxy( '#inner', {
 		columns: [
 			{
 				id: "left",

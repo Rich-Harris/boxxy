@@ -1,13 +1,3 @@
-.boxxy-block {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-	overflow: hidden;
-}
-
 .boxxy-leaf {
 	padding: 2px;
 }
@@ -38,13 +28,7 @@
 }
 
 .boxxy-vertical-control, .boxxy-horizontal-control {
-	position: absolute;
 	z-index: 2;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	-o-user-select: none;
-	user-select: none;
 }
 
 .boxxy-touch-control:before {
@@ -64,14 +48,10 @@
 }
 
 .boxxy-vertical-control {
-	width: 0;
-	height: 100%;
 	cursor: ew-resize;
 }
 
 .boxxy-horizontal-control {
-	width: 100%;
-	height: 0;
 	cursor: ns-resize;
 }
 

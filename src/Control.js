@@ -1,5 +1,5 @@
 import { addClass, removeClass } from './utils/class';
-import cursor from './utils/cursor';
+import { setStyles } from './utils/style';
 import {
 	WIDTH,
 	HEIGHT,
@@ -17,14 +17,36 @@ function createControlNode ( type ) {
 
 	addClass( node, `boxxy-${type}-control` );
 
+	setStyles( node, {
+		position: 'absolute',
+		userSelect: 'none'
+	});
+
 	if ( touch ) {
 		addClass( node, 'boxxy-touch-control' );
+	}
+
+	if ( type === VERTICAL ) {
+		setStyles( node, {
+			width: '0',
+			height: '100%'
+		});
+	} else {
+		setStyles( node, {
+			width: '100%',
+			height: '0'
+		});
 	}
 
 	return node;
 }
 
-function Control ({ boxxy, parent, parentNode, before, after, type }) {
+function which ( event ) {
+	event = event || window.event;
+	return event.which === null ? event.button : event.which;
+}
+
+function Control ({ boxxy, parent, before, after, type }) {
 	var mousedownHandler;
 
 	this.boxxy = boxxy;
@@ -33,8 +55,6 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 	this.after = after;
 	this.type = type;
 
-	this.parentNode = parentNode;
-
 	this.node = createControlNode( type );
 
 	// initialise position to the start of the next block
@@ -42,6 +62,10 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 
 	mousedownHandler = event => {
 		var min, max, move, up, cancel;
+
+		if ( which( event ) !== 1 ) {
+			return; // not interested in right/middle clicks
+		}
 
 		if ( event.preventDefault ) {
 			event.preventDefault();
@@ -139,18 +163,18 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 		});
 	}
 
-	parentNode.appendChild( this.node );
+	parent.node.appendChild( this.node );
 }
 
 Control.prototype = {
 	activate () {
 		addClass( this.node, 'boxxy-active' );
-		cursor( this.boxxy, this.type === VERTICAL ? 'ew' : 'ns' );
+		this.boxxy._setCursor( this.type === VERTICAL ? 'ew' : 'ns' );
 	},
 
 	deactivate () {
 		removeClass( this.node, 'boxxy-active' );
-		cursor( this.boxxy, false );
+		this.boxxy._setCursor( false );
 	},
 
 	getPosition ( px ) {

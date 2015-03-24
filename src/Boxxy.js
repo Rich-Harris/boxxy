@@ -1,6 +1,8 @@
 import Block from './Block';
+import getNode from './utils/getNode';
 import { getState, setState } from './utils/state';
 import { addClass } from './utils/class';
+import configure from './utils/configure';
 import {
 	ROW,
 	COLUMN,
@@ -8,11 +10,62 @@ import {
 	HEIGHT
 } from './utils/constants';
 
-function Boxxy ( options ) {
-	var self = this, fragment, blocks, resizeHandler;
+function normalise ( block, options ) {
+	let node;
 
-	this.el = options.el;
-	fragment = document.createDocumentFragment();
+	// expand short-form blocks
+	if ( Object.prototype.toString.call( block ) === '[object Array]' ) {
+		block = { children: block };
+	} else if ( node = getNode( block ) ) {
+		block = { node };
+	}
+
+	// TODO deprecate this behaviour
+	if ( typeof block === 'string' ) {
+		let id = block;
+		block = { node: document.createElement( 'boxxy-block' ) };
+		block.node.id = id;
+	}
+
+	let children;
+
+	if ( block.children ) {
+		let totalSize = 0;
+		block.children.forEach( child => {
+			totalSize += ( child.size || 1 );
+		});
+
+		children = block.children.map( function ( child, i ) {
+			return normalise( child, {
+				type: options.type === COLUMN ? ROW : COLUMN,
+				totalSize: totalSize / block.children.length,
+				lineage: options.lineage.concat( i )
+			});
+		});
+	}
+
+	node = block.node ? getNode( block.node ) : document.createElement( 'boxxy-block' );
+	node.setAttribute( 'data-boxxy-id', options.lineage.join( '-' ) );
+
+	return {
+		type:     options.type,
+		size:     ( 'size'    in block ? block.size :    1 ) / options.totalSize,
+		minSize:  ( 'minSize' in block ? block.minSize : 0 ) / options.totalSize,
+		maxSize:  ( 'maxSize' in block ? block.maxSize : 1 ) / options.totalSize,
+		node:     node,
+		children: children
+	};
+}
+
+function Boxxy ( node, options ) {
+	var blocks, resizeHandler;
+
+	this.node = getNode( node );
+	if ( !this.node ) {
+		throw new Error( '`node` must be a DOM node, an ID, or a CSS selector' );
+	}
+
+	this._defaultCursor = this.node.style.cursor;
 
 	if ( options.columns && options.rows ) {
 		throw new Error( 'You can\'t have top level rows and top level columns - one or the other' );
@@ -26,17 +79,24 @@ function Boxxy ( options ) {
 		blocks = options.rows;
 	}
 
+	let normalised = normalise({
+		node: node,
+		children: blocks
+	}, {
+		type: this.type,
+		totalSize: 1,
+		lineage: [ 0 ]
+	});
+	console.log( 'normalised', normalised );
+
 	this.blocks = {};
 	this._callbacks = {}; // events
 
 	this.min = options.min || 10;
 
-	// Block ( boxxy, parent, parentNode, id, data, start, size, type, edges ) {
-
 	this.root = new Block({
 		boxxy: this,
 		parent: this,
-		parentNode: fragment,
 		id: 'boxxy-0',
 		data: { children: blocks },
 		start: 0,
@@ -46,21 +106,14 @@ function Boxxy ( options ) {
 	});
 
 	addClass( this.root.node, 'boxxy-root' );
-	this.el.appendChild( fragment );
 
-	if ( options.shakeOnResize !== false ) {
-		resizeHandler = function () {
-			self._changedSinceLastResize = {};
-			self.shake();
-			self._fire( 'resize', self._changedSinceLastResize );
-		};
+	resizeHandler = () => {
+		this._changedSinceLastResize = {};
+		this.shake();
+		this._fire( 'resize', this._changedSinceLastResize );
+	};
 
-		if ( window.addEventListener ) {
-			window.addEventListener( 'resize', resizeHandler );
-		} else if ( window.attachEvent ) {
-			window.attachEvent( 'onresize', resizeHandler );
-		}
-	}
+	window.addEventListener( 'resize', resizeHandler );
 
 	this._changed = {};
 	this._changedSinceLastResize = {};
@@ -78,16 +131,22 @@ Boxxy.prototype = {
 		}
 	},
 
-	shake: function () {
-		var bcr = this.el.getBoundingClientRect();
+	_setCursor ( direction ) {
+		if ( !direction ) {
+			this.node.style.cursor = this._defaultCursor;
+			return;
+		}
+
+		this.node.style.cursor = `${direction}-resize`;
+	},
+
+	shake () {
+		let { left, right, top, bottom } = this.node.getBoundingClientRect();
 
 		this.bcr = {
-			left: bcr.left,
-			right: bcr.right,
-			top: bcr.top,
-			bottom: bcr.bottom,
-			width: bcr.right - bcr.left,
-			height: bcr.bottom - bcr.top
+			left, right, top, bottom,
+			width: right - left,
+			height: bottom - top
 		};
 
 		if ( ( this.bcr.width === this.width ) && ( this.bcr.height === this.height ) ) {
@@ -104,21 +163,21 @@ Boxxy.prototype = {
 		return this;
 	},
 
-	changed: function () {
+	changed () {
 		var changed = this._changed;
 		this._changed = {};
 
 		return changed;
 	},
 
-	getState: function () {
+	getState () {
 		var state = {};
 
 		getState( this.root, state );
 		return state;
 	},
 
-	setState: function ( state ) {
+	setState ( state ) {
 		var changed = {}, key;
 
 		setState( this, this.root, state, changed );
@@ -135,7 +194,7 @@ Boxxy.prototype = {
 		return this;
 	},
 
-	save: function ( id ) {
+	save ( id ) {
 		var key, value;
 
 		if ( !localStorage ) {
@@ -150,14 +209,14 @@ Boxxy.prototype = {
 		return this;
 	},
 
-	restore: function ( id ) {
+	restore ( id ) {
 		var key, value;
 
 		if ( !localStorage ) {
 			return;
 		}
 
-		key = ( id ? 'boxxy_' + id : 'boxxy' );
+		key = ( id ? `boxxy_${id}` : 'boxxy' );
 		value = JSON.parse( localStorage.getItem( key ) );
 
 		if ( value ) {
@@ -167,52 +226,50 @@ Boxxy.prototype = {
 		return this;
 	},
 
-	on: function ( eventName, callback ) {
-		var self = this, subs;
-
-		if ( !( subs = this.subs[ eventName ] ) ) {
-			this.subs[ eventName ] = [ callback ];
-		} else {
-			subs[ subs.length ] = callback;
+	on ( eventName, callback ) {
+		if ( !this._callbacks.hasOwnProperty( eventName ) ) {
+			this._callbacks[ eventName ] = [];
 		}
 
+		this._callbacks[ eventName ].push( callback );
+
 		return {
-			cancel: function () {
-				self.off( eventName, callback );
-			}
+			cancel: () => this.off( eventName, callback )
 		};
 	},
 
-	off: function ( eventName, callback ) {
-		var index, subs;
+	off ( eventName, callback ) {
+		var index, callbacks;
 
 		if ( !eventName ) {
 			// remove all listeners
-			this.subs = {};
+			this._callbacks = {};
 			return this;
 		}
 
 		if ( !callback ) {
 			// remove all listeners of eventName
-			delete this.subs[ eventName ];
+			delete this._callbacks[ eventName ];
 			return this;
 		}
 
-		if ( !( subs = this.subs[ eventName ] ) ) {
+		if ( !( callbacks = this._callbacks[ eventName ] ) ) {
 			return this;
 		}
 
-		index = subs.indexOf( callback );
+		index = callbacks.indexOf( callback );
 
 		if ( index !== -1 ) {
-			subs.splice( index, 1 );
-			if ( !subs.length ) {
-				delete this.subs[ eventName ];
+			callbacks.splice( index, 1 );
+			if ( !callbacks.length ) {
+				delete this._callbacks[ eventName ];
 			}
 		}
 
 		return this;
 	}
 };
+
+Boxxy.configure = configure;
 
 export default Boxxy;

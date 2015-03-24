@@ -1,5 +1,6 @@
 import Control from './Control';
 import { addClass } from './utils/class';
+import { setStyles } from './utils/style';
 import {
 	ROW,
 	COLUMN,
@@ -30,7 +31,21 @@ function normaliseData ( data ) {
 	return data;
 }
 
-function Block ({ boxxy, parent, parentNode, id, data, start, size, type, edges }) {
+function createBlockNode () {
+	let node = document.createElement( 'boxxy-block' );
+
+	setStyles( node, {
+		position: 'absolute',
+		width: '100%',
+		height: '100%',
+		boxSizing: 'border-box',
+		overflow: 'hidden'
+	});
+
+	return node;
+}
+
+function Block ({ boxxy, parent, id, data, start, size, type, edges }) {
 	var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
 	this.start = start;
@@ -49,12 +64,11 @@ function Block ({ boxxy, parent, parentNode, id, data, start, size, type, edges 
 
 	this.id = data.id || id;
 
-	this.node = document.createElement( 'div' );
+	this.node = createBlockNode();
 	addClass( this.node, 'boxxy-block' );
 
 	if ( data.children && data.children.length ) {
 		// Branch block
-		addClass( this.node, 'boxxy-branch' );
 		this.node.id = this.id;
 	}
 
@@ -103,23 +117,25 @@ function Block ({ boxxy, parent, parentNode, id, data, start, size, type, edges 
 			childData = data.children[i];
 			childSize = 100 * ( ( childData.size || 1 ) / totalSize );
 
-			childEdges = {};
 			if ( type === COLUMN ) {
-				childEdges.top = edges.top && ( i === 0 );
-				childEdges.bottom = edges.bottom && ( i === ( data.children.length - 1 ) );
-				childEdges.left = edges.left;
-				childEdges.right = edges.right;
+				childEdges = {
+					top: edges.top && ( i === 0 ),
+					bottom: edges.bottom && ( i === ( data.children.length - 1 ) ),
+					left: edges.left,
+					right: edges.right
+				};
 			} else {
-				childEdges.left = edges.left && ( i === 0 );
-				childEdges.right = edges.right && ( i === ( data.children.length - 1 ) );
-				childEdges.top = edges.top;
-				childEdges.bottom = edges.bottom;
+				childEdges = {
+					left: edges.left && ( i === 0 ),
+					right: edges.right && ( i === ( data.children.length - 1 ) ),
+					top: edges.top,
+					bottom: edges.bottom
+				};
 			}
 
 			this.children[i] = new Block({
 				boxxy,
 				parent: this,
-				parentNode: this.node,
 				id: ( id + i ),
 				data: childData,
 				start: total,
@@ -138,7 +154,6 @@ function Block ({ boxxy, parent, parentNode, id, data, start, size, type, edges 
 			this.controls[i] = new Control({
 				boxxy,
 				parent: this,
-				parentNode: this.node,
 				before,
 				after,
 				type: type === ROW ? VERTICAL : HORIZONTAL
@@ -146,7 +161,7 @@ function Block ({ boxxy, parent, parentNode, id, data, start, size, type, edges 
 		}
 	}
 
-	parentNode.appendChild( this.node );
+	parent.node.appendChild( this.node );
 }
 
 Block.prototype = {
@@ -177,7 +192,6 @@ Block.prototype = {
 		change = end - previousEnd;
 		size = previousSize + change;
 
-		//this.node.style[ this.type === COLUMN ? LEFT : TOP ] = start + '%';
 		this.node.style[ this.type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
 
 		this.end = end;
