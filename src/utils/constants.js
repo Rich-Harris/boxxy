@@ -1,0 +1,10 @@
+export const COLUMN = 'column';
+export const ROW = 'row';
+export const LEFT = 'left';
+export const TOP = 'top';
+export const WIDTH = 'width';
+export const HEIGHT = 'height';
+export const VERTICAL = 'vertical';
+export const HORIZONTAL = 'horizontal';
+export const CLIENTX = 'clientX';
+export const CLIENTY = 'clientY';

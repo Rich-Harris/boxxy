@@ -1,19 +1,31 @@
 import { addClass, removeClass } from './utils/class';
-import throttle from './utils/throttle';
 import cursor from './utils/cursor';
+import {
+	WIDTH,
+	HEIGHT,
+	LEFT,
+	TOP,
+	VERTICAL,
+	CLIENTX,
+	CLIENTY
+} from './utils/constants';
 
 const touch = ( 'ontouchstart' in document );
 
-const LEFT = 'left';
-const TOP = 'top';
-const WIDTH = 'width';
-const HEIGHT = 'height';
-const VERTICAL = 'vertical';
-const CLIENTX = 'clientX';
-const CLIENTY = 'clientY';
+function createControlNode ( type ) {
+	var node = document.createElement( 'boxxy-control' );
+
+	addClass( node, `boxxy-${type}-control` );
+
+	if ( touch ) {
+		addClass( node, 'boxxy-touch-control' );
+	}
+
+	return node;
+}
 
 function Control ({ boxxy, parent, parentNode, before, after, type }) {
-	var self = this, mousedownHandler;
+	var mousedownHandler;
 
 	this.boxxy = boxxy;
 	this.parent = parent;
@@ -23,17 +35,12 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 
 	this.parentNode = parentNode;
 
-	this.node = document.createElement( 'div' );
-	addClass( this.node, 'boxxy-' + type + '-control' );
-
-	if ( touch ) {
-		addClass( this.node, 'boxxy-touch-control' );
-	}
+	this.node = createControlNode( type );
 
 	// initialise position to the start of the next block
 	this.setPosition( after.start );
 
-	mousedownHandler = function ( event ) {
+	mousedownHandler = event => {
 		var min, max, move, up, cancel;
 
 		if ( event.preventDefault ) {
@@ -44,53 +51,39 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 		min = Math.max( before.start + before.minPc(), after.end - after.maxPc() );
 		max = Math.min( before.start + before.maxPc(), after.end - after.minPc() );
 
-		move = function ( event ) {
+		move = event => {
 			var position;
 
-			position = self.getPosition( event[ type === VERTICAL ? CLIENTX : CLIENTY ] );
+			position = this.getPosition( event[ type === VERTICAL ? CLIENTX : CLIENTY ] );
 			position = Math.max( min, Math.min( max, position ) );
 
 			before.setEnd( position );
 			after.setStart( position );
 
-			self.setPosition( position );
+			this.setPosition( position );
 
-			self.boxxy._fire( 'resize', self.boxxy._changedSinceLastResize );
-			self.boxxy._changedSinceLastResize = {};
+			this.boxxy._fire( 'resize', this.boxxy._changedSinceLastResize );
+			this.boxxy._changedSinceLastResize = {};
 		};
 
-		up = function () {
-			self.deactivate();
+		up = () => {
+			this.deactivate();
 			cancel();
 		};
 
-		cancel = function () {
-			if ( document.removeEventListener ) {
-				document.removeEventListener( 'mousemove', move );
-				document.removeEventListener( 'mouseup', up );
-			} else if ( document.detachEvent ) {
-				document.detachEvent( 'onmousemove', move );
-				document.detachEvent( 'onmouseup', up );
-			}
+		cancel = () => {
+			document.removeEventListener( 'mousemove', move );
+			document.removeEventListener( 'mouseup', up );
 		};
 
-		if ( document.addEventListener ) {
-			document.addEventListener( 'mousemove', move );
-			document.addEventListener( 'mouseup', up );
-		} else if ( document.attachEvent ) {
-			document.attachEvent( 'onmousemove', move = throttle( move ) );
-			document.attachEvent( 'onmouseup', up );
-		}
+		document.addEventListener( 'mousemove', move );
+		document.addEventListener( 'mouseup', up );
 	};
 
-	if ( this.node.addEventListener ) {
-		this.node.addEventListener( 'mousedown', mousedownHandler );
-	} else if ( this.node.attachEvent ) {
-		this.node.attachEvent( 'onmousedown', mousedownHandler );
-	}
+	this.node.addEventListener( 'mousedown', mousedownHandler );
 
 	if ( touch ) {
-		this.node.addEventListener( 'touchstart', function ( event ) {
+		this.node.addEventListener( 'touchstart', event => {
 			var touch, finger, min, max, move, up, cancel;
 
 			if ( event.touches.length !== 1 ) {
@@ -102,13 +95,13 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 			touch = event.touches[0];
 			finger = touch.identifier;
 
-			self.activate();
+			this.activate();
 
 			// constraints
 			min = Math.max( before.start + before.minPc(), after.end - after.maxPc() );
 			max = Math.min( before.start + before.maxPc(), after.end - after.minPc() );
 
-			move = function ( event ) {
+			move = event => {
 				var position, touch;
 
 				if ( event.touches.length !== 1 || event.touches[0].identifier !== finger ) {
@@ -117,24 +110,24 @@ function Control ({ boxxy, parent, parentNode, before, after, type }) {
 
 				touch = event.touches[0];
 
-				position = self.getPosition( touch[ type === VERTICAL ? CLIENTX : CLIENTY ] );
+				position = this.getPosition( touch[ type === VERTICAL ? CLIENTX : CLIENTY ] );
 				position = Math.max( min, Math.min( max, position ) );
 
 				before.setEnd( position );
 				after.setStart( position );
 
-				self.setPosition( position );
+				this.setPosition( position );
 
-				self.boxy._fire( 'resize', self.boxxy._changedSinceLastResize );
-				self.boxxy._changedSinceLastResize = {};
+				this.boxy._fire( 'resize', this.boxxy._changedSinceLastResize );
+				this.boxxy._changedSinceLastResize = {};
 			};
 
-			up = function () {
-				self.deactivate();
+			up = () => {
+				this.deactivate();
 				cancel();
 			};
 
-			cancel = function () {
+			cancel = () => {
 				window.removeEventListener( 'touchmove', move );
 				window.removeEventListener( 'touchend', up );
 				window.removeEventListener( 'touchcancel', up );

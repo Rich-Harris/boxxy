@@ -1,15 +1,12 @@
 import Block from './Block';
+import { getState, setState } from './utils/state';
 import { addClass } from './utils/class';
-
-let getState;
-let setState;
-let fire;
-let ROW = 'row';
-let COLUMN = 'column';
-let LEFT = 'left';
-let TOP = 'top';
-let WIDTH = 'width';
-let HEIGHT = 'height';
+import {
+	ROW,
+	COLUMN,
+	WIDTH,
+	HEIGHT
+} from './utils/constants';
 
 function Boxxy ( options ) {
 	var self = this, fragment, blocks, resizeHandler;
@@ -34,7 +31,20 @@ function Boxxy ( options ) {
 
 	this.min = options.min || 10;
 
-	this.root = new Block( this, this, fragment, 'boxxy-0', { children: blocks }, 0, 100, this.type, { top: true, right: true, bottom: true, left: true });
+	// Block ( boxxy, parent, parentNode, id, data, start, size, type, edges ) {
+
+	this.root = new Block({
+		boxxy: this,
+		parent: this,
+		parentNode: fragment,
+		id: 'boxxy-0',
+		data: { children: blocks },
+		start: 0,
+		size: 100,
+		type: this.type,
+		edges: { top: true, right: true, bottom: true, left: true }
+	});
+
 	addClass( this.root.node, 'boxxy-root' );
 	this.el.appendChild( fragment );
 
@@ -42,7 +52,7 @@ function Boxxy ( options ) {
 		resizeHandler = function () {
 			self._changedSinceLastResize = {};
 			self.shake();
-			fire( self, 'resize', self._changedSinceLastResize );
+			self._fire( 'resize', self._changedSinceLastResize );
 		};
 
 		if ( window.addEventListener ) {
@@ -116,7 +126,7 @@ Boxxy.prototype = {
 		// if any of the sizes have changed, fire a resize event...
 		for ( key in changed ) {
 			if ( changed.hasOwnProperty( key ) ) {
-				fire( this, 'resize', changed );
+				this._fire( 'resize', changed );
 
 				// ...but only the one
 				break;
@@ -203,69 +213,6 @@ Boxxy.prototype = {
 
 		return this;
 	}
-};
-
-
-// internal helpers
-
-
-getState = function ( block, state ) {
-	var i;
-
-	state[ block.id ] = [ block.start, block.size ];
-
-	if ( !block.children ) {
-		return;
-	}
-
-	i = block.children.length;
-	while ( i-- ) {
-		getState( block.children[i], state );
-	}
-};
-
-setState = function ( boxxy, block, state, changed ) {
-	var i, len, child, totalSize, blockState;
-
-	blockState = state[ block.id ];
-
-	if ( !blockState ) {
-		return; // something went wrong...
-	}
-
-	if ( block.start !== blockState[0] || block.size !== blockState[1] ) {
-		boxxy._changed[ block.id ] = changed[ block.id ] = true;
-	}
-
-	block.start = blockState[0];
-	block.size = blockState[1];
-	block.end = block.start + block.size;
-
-	block.node.style[ block.type === COLUMN ? LEFT : TOP ] = block.start + '%';
-	block.node.style[ block.type === COLUMN ? WIDTH : HEIGHT ] = block.size + '%';
-
-	if ( block.children ) {
-		totalSize = 0;
-		len = block.children.length;
-
-		for ( i=0; i<len; i+=1 ) {
-			child = block.children[i];
-
-			setState( boxxy, child, state, changed, true );
-			totalSize += child.size;
-
-			if ( block.controls[i] ) {
-				block.controls[i].setPosition( totalSize );
-			}
-		}
-
-		i = block.children.length;
-		while ( i-- ) {
-			setState( boxxy, block.children[i], state, changed, true );
-		}
-	}
-
-	block.shake();
 };
 
 export default Boxxy;

@@ -1,16 +1,36 @@
 import Control from './Control';
 import { addClass } from './utils/class';
+import {
+	ROW,
+	COLUMN,
+	WIDTH,
+	HEIGHT,
+	LEFT,
+	TOP,
+	VERTICAL,
+	HORIZONTAL
+} from './utils/constants';
 
-const ROW = 'row';
-const COLUMN = 'column';
-const LEFT = 'left';
-const TOP = 'top';
-const WIDTH = 'width';
-const HEIGHT = 'height';
-const VERTICAL = 'vertical';
-const HORIZONTAL = 'horizontal';
+function normaliseData ( data ) {
+	// were we given an existing node?
+	if ( data.nodeType === 1 ) { // duck typing, blech. But of course IE fucks up if you do data instanceof Element...
+		return { node: data };
+	}
 
-function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges ) {
+	// or an ID string?
+	if ( typeof data === 'string' ) {
+		return { id: data };
+	}
+
+	// ...or an array of children?
+	if ( Object.prototype.toString.call( data ) === '[object Array]' ) {
+		return { children: data };
+	}
+
+	return data;
+}
+
+function Block ({ boxxy, parent, parentNode, id, data, start, size, type, edges }) {
 	var totalSize, i, total, childData, childSize, node, before, after, childEdges;
 
 	this.start = start;
@@ -25,37 +45,21 @@ function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges )
 	this.min = data.min || boxxy.min;
 	this.max = data.max;
 
-	// were we given an existing node?
-	if ( data.nodeType === 1 ) { // duck typing, blech. But of course IE fucks up if you do data instanceof Element...
-		data = { node: data };
-	}
-
-	// or an ID string?
-	if ( typeof data === 'string' ) {
-		data = { id: data };
-	}
-
-	// ...or an array of children?
-	if ( Object.prototype.toString.call( data ) === '[object Array]' ) {
-		data = { children: data };
-	}
+	data = normaliseData( data );
 
 	this.id = data.id || id;
 
+	this.node = document.createElement( 'div' );
+	addClass( this.node, 'boxxy-block' );
 
 	if ( data.children && data.children.length ) {
 		// Branch block
-		this.node = document.createElement( 'div' );
-		addClass( this.node, 'boxxy-block' );
 		addClass( this.node, 'boxxy-branch' );
-
 		this.node.id = this.id;
 	}
 
 	else {
 		// Leaf block
-		this.node = document.createElement( 'div' );
-		addClass( this.node, 'boxxy-block' );
 		addClass( this.node, 'boxxy-leaf' );
 
 		// do we have an ID that references an existing node?
@@ -63,11 +67,8 @@ function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges )
 			data.node = node;
 		}
 
-		if ( data.node ) {
-			this.inner = data.node;
-		} else {
-			this.inner = document.createElement( 'div' );
-		}
+		// use existing node if it exists, otherwise create one
+		this.inner = data.node || document.createElement( 'div' );
 
 		addClass( this.inner, 'boxxy-inner' );
 		this.node.appendChild( this.inner );
@@ -77,12 +78,12 @@ function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges )
 		this.inner.id = this.id;
 	}
 
-	if ( edges.top ) { addClass( this.node, 'boxxy-top' ); }
-	if ( edges.right ) { addClass( this.node, 'boxxy-right' ); }
+	if ( edges.top )    { addClass( this.node, 'boxxy-top'    ); }
+	if ( edges.right )  { addClass( this.node, 'boxxy-right'  ); }
 	if ( edges.bottom ) { addClass( this.node, 'boxxy-bottom' ); }
-	if ( edges.left ) { addClass( this.node, 'boxxy-left' ); }
+	if ( edges.left )   { addClass( this.node, 'boxxy-left'   ); }
 
-	this.node.style[ type === COLUMN ? LEFT : TOP ] = start + '%';
+	this.node.style[ type === COLUMN ? LEFT  : TOP    ] = start + '%';
 	this.node.style[ type === COLUMN ? WIDTH : HEIGHT ] = size + '%';
 
 	if ( data.children ) {
@@ -115,9 +116,17 @@ function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges )
 				childEdges.bottom = edges.bottom;
 			}
 
-
-
-			this.children[i] = new Block( boxxy, this, this.node, ( id + i ), childData, total, childSize, type === COLUMN ? ROW : COLUMN, childEdges );
+			this.children[i] = new Block({
+				boxxy,
+				parent: this,
+				parentNode: this.node,
+				id: ( id + i ),
+				data: childData,
+				start: total,
+				size: childSize,
+				type: type === COLUMN ? ROW : COLUMN,
+				edges: childEdges
+			});
 
 			total += childSize;
 		}
@@ -125,6 +134,7 @@ function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges )
 		for ( i=0; i<data.children.length - 1; i+=1 ) {
 			before = this.children[i];
 			after = this.children[ i + 1 ];
+
 			this.controls[i] = new Control({
 				boxxy,
 				parent: this,
@@ -140,7 +150,7 @@ function Block ( boxxy, parent, parentNode, id, data, start, size, type, edges )
 }
 
 Block.prototype = {
-	setStart: function ( start ) {
+	setStart ( start ) {
 		var previousStart, previousSize, change, size;
 
 		previousStart = this.start;
@@ -158,7 +168,7 @@ Block.prototype = {
 		this.shake();
 	},
 
-	setEnd: function ( end ) {
+	setEnd ( end ) {
 		var previousEnd, previousSize, change, size;
 
 		previousEnd = this.end;
@@ -176,7 +186,7 @@ Block.prototype = {
 		this.shake();
 	},
 
-	shake: function () {
+	shake () {
 		var i, len, a, b, control, size, bcr;
 
 		bcr = this.node.getBoundingClientRect();
@@ -254,7 +264,7 @@ Block.prototype = {
 		}
 	},
 
-	minPc: function () {
+	minPc () {
 		var totalPixels;
 
 		// calculate minimum % width from pixels
@@ -262,7 +272,7 @@ Block.prototype = {
 		return ( this.min / totalPixels ) * 100;
 	},
 
-	maxPc: function () {
+	maxPc () {
 		var totalPixels;
 
 		if ( !this.max ) {
