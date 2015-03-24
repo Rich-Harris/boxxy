@@ -1,14 +1,10 @@
 {
-	"curly": true,
-	"eqeqeq": true,
-	"immed": true,
-	"latedef": true,
-	"newcap": true,
-	"noarg": true,
-	"sub": true,
+	"esnext": true,
 	"undef": true,
-	"boss": true,
-	"eqnull": true,
-	"node": true,
-	"es5": true
+	"unused": true,
+	"globals": {
+		"document": true,
+		"window": true,
+		"localStorage": true
+	}
 }
