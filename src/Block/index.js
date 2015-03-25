@@ -1,11 +1,10 @@
 import Control from '../Control';
 import { addClass } from '../utils/class';
+import { setStyles } from '../utils/style';
 import createBlockNode from './createBlockNode';
 import { ROW, COLUMN, WIDTH, HEIGHT, LEFT, TOP } from '../utils/constants';
 
 function Block ({ boxxy, parent, data, edges }) {
-	var totalSize, i, total, childData, childSize, node, before, after, childEdges;
-
 	this.start = this.size = this.end = null;
 
 	this.type = parent.type === ROW ? COLUMN : ROW;
@@ -19,6 +18,18 @@ function Block ({ boxxy, parent, data, edges }) {
 	this.node = createBlockNode( edges );
 
 	if ( !data.children ) {
+		this.initLeaf( data );
+	} else if ( data.children ) {
+		this.initBranch( data, edges );
+	}
+
+	parent.node.appendChild( this.node );
+}
+
+Block.prototype = {
+	initLeaf ( data ) {
+		let node;
+
 		// Leaf block
 		this.isLeaf = true;
 
@@ -30,76 +41,70 @@ function Block ({ boxxy, parent, data, edges }) {
 		}
 
 		// use existing node if it exists, otherwise create one
-		this.inner = data.node || document.createElement( 'div' );
+		this.inner = data.node || document.createElement( 'boxxy-inner' );
 
 		addClass( this.inner, 'boxxy-inner' );
 		this.node.appendChild( this.inner );
 
-		boxxy.blocks[ this.id ] = this.inner;
+		setStyles( this.inner, {
+			position: 'relative',
+			display: 'block',
+			width: '100%',
+			height: '100%',
+			boxSizing: 'border-box',
+			overflow: 'auto'
+		});
 
-		this.inner.id = this.id;
-	}
+		this.boxxy.blocks[ this.id ] = this.inner;
+	},
 
-	else if ( data.children ) {
-		// find total size of children
-		totalSize = 0;
+	initBranch ( data, edges ) {
+		let i;
 
 		i = data.children.length;
-		while ( i-- ) {
-			totalSize += data.children[i].size || 1;
-		}
 
 		this.children = [];
 		this.controls = [];
 
-		total = 0;
-		for ( i=0; i<data.children.length; i+=1 ) {
-			childData = data.children[i];
-			childSize = ( childData.size || 1 ) / totalSize;
+		for ( i = 0; i < data.children.length; i += 1 ) {
+			let childEdges;
+			let isFirst = i === 0;
+			let isLast = i === data.children.length - 1;
 
 			if ( this.type === COLUMN ) {
 				childEdges = {
-					top: edges.top && ( i === 0 ),
-					bottom: edges.bottom && ( i === ( data.children.length - 1 ) ),
+					top: edges.top && isFirst,
+					bottom: edges.bottom && isLast,
 					left: edges.left,
 					right: edges.right
 				};
 			} else {
 				childEdges = {
-					left: edges.left && ( i === 0 ),
-					right: edges.right && ( i === ( data.children.length - 1 ) ),
+					left: edges.left && isFirst,
+					right: edges.right && isLast,
 					top: edges.top,
 					bottom: edges.bottom
 				};
 			}
 
 			this.children[i] = new Block({
-				boxxy,
+				boxxy: this.boxxy,
 				parent: this,
-				data: childData,
+				data: data.children[i],
 				edges: childEdges
 			});
-
-			total += childSize;
 		}
 
 		for ( i=0; i<data.children.length - 1; i+=1 ) {
-			before = this.children[i];
-			after = this.children[ i + 1 ];
-
 			this.controls[i] = new Control({
-				boxxy,
+				boxxy: this.boxxy,
 				parent: this,
-				before,
-				after
+				before: this.children[i],
+				after: this.children[ i + 1 ]
 			});
 		}
-	}
+	},
 
-	parent.node.appendChild( this.node );
-}
-
-Block.prototype = {
 	getState ( state ) {
 		var i;
 
@@ -217,7 +222,7 @@ Block.prototype = {
 
 		// enforce minima and maxima - first go forwards
 		len = this.children.length;
-		for ( i=0; i<len - 1; i+=1 ) {
+		for ( i = 0; i < len - 1; i += 1 ) {
 			a = this.children[i];
 			b = this.children[ i+1 ];
 			control = this.controls[i];
@@ -234,7 +239,7 @@ Block.prototype = {
 		}
 
 		// then backwards
-		for ( i=len -1; i>0; i-=1 ) {
+		for ( i = len -1; i > 0; i -= 1 ) {
 			a = this.children[ i-1 ];
 			b = this.children[i];
 			control = this.controls[ i-1 ];

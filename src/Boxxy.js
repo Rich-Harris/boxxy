@@ -2,7 +2,7 @@ import Block from './Block';
 import getNode from './utils/getNode';
 import { addClass } from './utils/class';
 import { setStyles } from './utils/style';
-import configure from './utils/configure';
+import initCss from './utils/initCss';
 import {
 	ROW,
 	COLUMN,
@@ -22,9 +22,11 @@ function normalise ( block, options ) {
 
 	// TODO deprecate this behaviour
 	if ( typeof block === 'string' ) {
-		let nodeId = block;
-		block = { node: document.createElement( 'boxxy-block' ) };
-		block.node.id = nodeId;
+		block = {
+			node: document.createElement( 'boxxy-block' ),
+			id: block
+		};
+		block.node.id = block.id;
 	}
 
 	let children;
@@ -47,9 +49,7 @@ function normalise ( block, options ) {
 	}
 
 	node = block.node ? getNode( block.node ) : document.createElement( 'boxxy-block' );
-	id = options.lineage.join( '-' );
-
-	node.setAttribute( 'data-boxxy-id', id );
+	id = block.id || options.lineage.join( '-' );
 
 	setStyles( node, {
 		position: 'absolute',
@@ -139,6 +139,7 @@ function Boxxy ( node, options ) {
 
 	window.addEventListener( 'resize', resizeHandler );
 
+	initCss();
 	this.container.appendChild( this.node );
 
 	this._changed = {};
@@ -302,6 +303,6 @@ Boxxy.prototype = {
 	}
 };
 
-Boxxy.configure = configure;
+Boxxy.initCss = initCss;
 
 export default Boxxy;

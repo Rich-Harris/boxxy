@@ -14,6 +14,11 @@ init = function () {
 		return 'rgb(' + [ red, green, blue ].join( ',' ) + ')';
 	};
 
+	Boxxy.initCss({
+		controlSize: 3,
+		controlColor: 'white'
+	});
+
 	boxxy = new Boxxy( '#inner', {
 		columns: [
 			{

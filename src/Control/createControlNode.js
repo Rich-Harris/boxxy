@@ -13,7 +13,8 @@ export default function createControlNode ( control ) {
 
 	setStyles( node, {
 		position: 'absolute',
-		userSelect: 'none'
+		userSelect: 'none',
+		cursor: control.type === VERTICAL ? 'ew-resize' : 'ns-resize'
 	});
 
 	if ( hasTouch ) {
