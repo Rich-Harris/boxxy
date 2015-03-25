@@ -1,27 +1,21 @@
 {
-  "name": "divvy",
+  "name": "boxxy",
   "description": "Layout manager for web apps",
   "author": "Rich Harris",
-  "version": "0.1.7",
-  "main": "divvy.js",
+  "version": "0.2.0",
+  "main": "dist/boxxy.js",
+  "jsnext:main": "src/boxxy.js",
   "devDependencies": {
     "gobble": "^0.7.9",
     "gobble-babel": "^4.0.1",
     "gobble-cli": "^0.3.5",
     "gobble-esperanto-bundle": "^0.1.7",
-    "gobble-sorcery": "^0.2.5",
-    "grunt": "~0.4.1",
-    "grunt-contrib-concat": "~0.1.3",
-    "grunt-contrib-copy": "~0.4.0",
-    "grunt-contrib-jshint": "~0.2.0",
-    "grunt-contrib-uglify": "~0.1.2",
-    "grunt-contrib-watch": "~0.2.0",
-    "jit-grunt": "~0.7.0"
+    "gobble-sorcery": "^0.2.5"
   },
   "license": "MIT",
-  "files": [
-    "divvy.js",
-    "divvy.min.js",
-    "divvy.css"
-  ]
+  "files": [ "src", "dist", "README.md" ],
+  "scripts": {
+    "build": "gobble build -f dist",
+    "prepublish": "npm run build"
+  }
 }
