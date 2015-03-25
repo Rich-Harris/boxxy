@@ -17,11 +17,12 @@ var lib = gobble( 'src' )
 	})
 	.transform( 'esperanto-bundle', {
 		entry: 'Boxxy',
+		dest: 'boxxy',
 		type: 'umd',
 		name: 'Boxxy'
 	})
 	.transform( 'sorcery' );
 
-var css = gobble( 'src/Boxxy.css' );
-
-module.exports = gobble([ lib, css, 'demo' ]);
+module.exports = gobble.env() !== 'production' ?
+	gobble([ lib, 'demo' ]) :
+	lib;
