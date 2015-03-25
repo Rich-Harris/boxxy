@@ -2,7 +2,7 @@
   "name": "boxxy",
   "description": "Layout manager for web apps",
   "author": "Rich Harris",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "dist/boxxy.js",
   "jsnext:main": "src/boxxy.js",
   "devDependencies": {

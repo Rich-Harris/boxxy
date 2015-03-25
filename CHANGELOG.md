@@ -1,5 +1,7 @@
 # changelog
 
+## 0.2.1
+
 ## 0.2.0
 
 * Renamed from `divvy` to `boxxy`, to avoid npm conflict
