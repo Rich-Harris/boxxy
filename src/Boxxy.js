@@ -39,7 +39,7 @@ function normalise ( block, options ) {
 		});
 	}
 
-	node = block.node ? getNode( block.node ) : document.createElement( 'boxxy-block' );
+	node = block.node ? getNode( block.node ) : getNode( block.id ) || document.createElement( 'boxxy-block' );
 	id = block.id || options.lineage.join( '-' );
 
 	setStyles( node, {

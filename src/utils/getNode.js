@@ -1,4 +1,6 @@
 export default function getNode ( node ) {
+	if ( !node ) return null;
+
 	if ( node.nodeType === 1 ) {
 		return node;
 	}

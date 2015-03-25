@@ -581,6 +581,8 @@
 	//# sourceMappingURL=/www/boxxy/.gobble-build/01-babel/1/Block/index.js.01-babel.map
 
 	function getNode(node) {
+		if (!node) return null;
+
 		if (node.nodeType === 1) {
 			return node;
 		}
@@ -694,7 +696,7 @@
 			})();
 		}
 
-		node = block.node ? getNode(block.node) : document.createElement("boxxy-block");
+		node = block.node ? getNode(block.node) : getNode(block.id) || document.createElement("boxxy-block");
 		id = block.id || options.lineage.join("-");
 
 		setStyles(node, {
