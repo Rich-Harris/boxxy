@@ -1,10 +1,7 @@
 import { addClass } from '../utils/class';
 import { setStyles } from '../utils/style';
 import hasTouch from '../utils/hasTouch';
-import {
-	VERTICAL,
-	CONTROL
-} from '../utils/constants';
+import { VERTICAL, CONTROL } from '../utils/constants';
 
 export default function createControlNode ( control ) {
 	var node = document.createElement( 'boxxy-control' );

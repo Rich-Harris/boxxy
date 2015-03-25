@@ -3,12 +3,7 @@ import getNode from './utils/getNode';
 import { addClass } from './utils/class';
 import { setStyles } from './utils/style';
 import initCss from './utils/initCss';
-import {
-	ROW,
-	COLUMN,
-	WIDTH,
-	HEIGHT
-} from './utils/constants';
+import { ROW, COLUMN, WIDTH, HEIGHT } from './utils/constants';
 
 function normalise ( block, options ) {
 	let id, node;
@@ -16,14 +11,12 @@ function normalise ( block, options ) {
 	// expand short-form blocks
 	if ( Object.prototype.toString.call( block ) === '[object Array]' ) {
 		block = { children: block };
-	} else if ( node = getNode( block ) ) {
-		block = { node };
 	}
 
-	// TODO deprecate this behaviour
+	// TODO deprecate this behaviour?
 	if ( typeof block === 'string' ) {
 		block = {
-			node: document.createElement( 'boxxy-block' ),
+			node: getNode( block ) || document.createElement( 'boxxy-block' ),
 			id: block
 		};
 		block.node.id = block.id;
@@ -40,8 +33,6 @@ function normalise ( block, options ) {
 		children = block.children.map( function ( child, i ) {
 			return normalise( child, {
 				type: options.type === COLUMN ? ROW : COLUMN,
-				isFirst: i === 0,
-				isLast: i === block.children.length - 1,
 				totalSize: totalSize,
 				lineage: options.lineage.concat( i )
 			});
@@ -58,16 +49,11 @@ function normalise ( block, options ) {
 	});
 
 	return {
-		id:       id,
-		node:     node,
-		children: children,
-
-		type:     options.type,
-		isFirst:  options.isFirst,
-		isLast:   options.isLast,
-		size:     ( 'size' in block ? block.size : 1 ) / options.totalSize,
-		min:      block.min || 0,
-		max:      block.max
+		id, node, children,
+		type: options.type,
+		size: ( 'size' in block ? block.size : 1 ) / options.totalSize,
+		min:  block.min || 0,
+		max:  block.max
 	};
 }
 

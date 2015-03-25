@@ -46,17 +46,11 @@ init = function () {
 		'right-bottom': 'rgb(230,210,240)'
 	};
 
-	var blocks = document.querySelectorAll( '.boxxy-inner' );
-	var i = blocks.length;
-	while ( i-- ) {
-		blocks[i].style.backgroundColor = randomColor();
+	for ( id in boxxy.blocks ) {
+		if ( boxxy.blocks.hasOwnProperty( id ) ) {
+			boxxy.blocks[ id ].style.backgroundColor = colors[ id ] || randomColor();
+		}
 	}
-
-	// for ( id in boxxy.blocks ) {
-	// 	if ( boxxy.blocks.hasOwnProperty( id ) ) {
-	// 		boxxy.blocks[ id ].style.backgroundColor = colors[ id ] || randomColor();
-	// 	}
-	// }
 
 };
 

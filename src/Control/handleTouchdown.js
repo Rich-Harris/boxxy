@@ -1,9 +1,4 @@
-import {
-	CONTROL,
-	VERTICAL,
-	CLIENTX,
-	CLIENTY
-} from '../utils/constants';
+import { CONTROL, VERTICAL, CLIENTX, CLIENTY } from '../utils/constants';
 
 export default function ( event ) {
 	if ( event.touches.length !== 1 ) {

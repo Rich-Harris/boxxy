@@ -1,12 +1,4 @@
-import {
-	WIDTH,
-	HEIGHT,
-	LEFT,
-	TOP,
-	ROW,
-	HORIZONTAL,
-	VERTICAL
-} from '../utils/constants';
+import { WIDTH, HEIGHT, LEFT, TOP, ROW, HORIZONTAL, VERTICAL } from '../utils/constants';
 import { addClass, removeClass } from '../utils/class';
 import hasTouch from '../utils/hasTouch';
 import clamp from '../utils/clamp';

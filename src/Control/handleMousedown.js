@@ -1,9 +1,4 @@
-import {
-	CONTROL,
-	VERTICAL,
-	CLIENTX,
-	CLIENTY
-} from '../utils/constants';
+import { CONTROL, VERTICAL, CLIENTX, CLIENTY } from '../utils/constants';
 
 function which ( event ) {
 	event = event || window.event;
