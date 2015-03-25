@@ -91,7 +91,8 @@ export default function initCss ( options ) {
 		// use styleSheet.cssText instead
 		styleSheet = styleElement.styleSheet;
 
-		document.querySelector( 'head' ).appendChild( styleElement );
+		let head = document.querySelector( 'head' );
+		head.insertBefore( styleElement, head.firstChild );
 
 		inited = true;
 	}

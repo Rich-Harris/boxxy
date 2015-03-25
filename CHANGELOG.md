@@ -1,6 +1,12 @@
 # changelog
 
+## 0.2.2
+
+* boxxy CSS is placed at the very top of the document, to allow subsequent stylesheets to override it
+
 ## 0.2.1
+
+* IDs of existing nodes are used
 
 ## 0.2.0
 

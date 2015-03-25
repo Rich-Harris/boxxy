@@ -646,7 +646,8 @@
 			// use styleSheet.cssText instead
 			styleSheet = styleElement.styleSheet;
 
-			document.querySelector("head").appendChild(styleElement);
+			var head = document.querySelector("head");
+			head.insertBefore(styleElement, head.firstChild);
 
 			inited = true;
 		}
