@@ -13,7 +13,7 @@ else {
 	};
 
 	addClass = ( node, className ) => {
-		let classNames = node.getAttribute( 'class' ).split( ' ' ).map( trim ).filter( Boolean );
+		let classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' ).map( trim ).filter( Boolean );
 
 		if ( !~classNames.indexOf( className ) ) {
 			node.setAttribute( 'class', classNames.concat( className ).join( ' ' ) );
@@ -21,7 +21,7 @@ else {
 	};
 
 	removeClass = ( node, className ) => {
-		let classNames = node.getAttribute( 'class' ).split( ' ' ).map( trim ).filter( Boolean );
+		let classNames = ( node.getAttribute( 'class' ) || '' ).split( ' ' ).map( trim ).filter( Boolean );
 		let index = classNames.indexOf( className );
 
 		if ( ~index ) {
