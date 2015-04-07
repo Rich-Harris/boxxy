@@ -10,10 +10,16 @@
     "gobble-babel": "^4.0.1",
     "gobble-cli": "^0.3.5",
     "gobble-esperanto-bundle": "^0.1.7",
-    "gobble-sorcery": "^0.2.5"
+    "gobble-sorcery": "^0.2.5",
+    "jsdom": "^4.1.0",
+    "mocha": "^2.2.3"
   },
   "license": "MIT",
-  "files": [ "src", "dist", "README.md" ],
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "gobble build -f dist",
     "prepublish": "npm run build"
